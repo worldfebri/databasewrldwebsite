@@ -266,7 +266,7 @@ const DEFAULT_SETTINGS = {
   groq: { apiKey: "", model: "openai/gpt-oss-120b" },
   github: { repo: "", branch: "main", token: "", path: "worldmarket-database.json" },
   githubRoles: { repo: "", branch: "main", token: "", path: "database/additional/role_db.json" },
-  supabase: { url: "", anonKey: "", table: "wm_kv_store" },
+  supabase: { url: "", anonKey: "", table: "kv_worldmd" },
   payment: { qrisImage: "", ownerTelegramId: "" },
 };
 
@@ -318,7 +318,7 @@ async function hashPassword(pw) {
 
 // ---------------------------------------------------------------------------
 // Supabase lewat REST langsung (tanpa library supabase-js) — satu tabel
-// generik "wm_kv_store" (key, value jsonb) dipakai untuk SEMUA data bersama:
+// generik "kv_worldmd" (key, value jsonb) dipakai untuk SEMUA data bersama:
 // pengaturan situs, akun user, dan permintaan verifikasi Telegram. Setiap
 // bagian data punya "key" tetap sendiri di dalam tabel yang sama.
 // ---------------------------------------------------------------------------
@@ -343,7 +343,7 @@ function supaHeaders(extra) {
   const cfg = sbConfig();
   return Object.assign({ apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}`, "Content-Type": "application/json" }, extra || {});
 }
-function kvTable() { return state.settings.supabase?.table || "wm_kv_store"; }
+function kvTable() { return state.settings.supabase?.table || "kv_worldmd"; }
 async function kvGet(key) {
   const cfg = sbConfig();
   if (!cfg.url || !cfg.anonKey) return null;
@@ -1659,7 +1659,7 @@ function buildRolesExport() {
 //    screenshot bukti transfer (openManualQrisModal).
 // 3) Bukti (base64, dikompres dulu) disimpan sebagai satu "order" baru di
 //    dalam array yang SAMA dengan owner/apikey/kuota/warn, yaitu bundel
-//    "wm_shop" di Supabase wm_kv_store (key lokal "wm:manualOrders").
+//    "wm_shop" di Supabase kv_worldmd (key lokal "wm:manualOrders").
 // 4) Bot Telegram (folder bot/, index.js) polling array itu, kirim FOTO
 //    bukti ke Owner Telegram ID dengan tombol inline "✅ ACC" / "❌ Tolak".
 //    Begitu admin menekan salah satu tombol (dari Telegram ATAU dari
@@ -1684,7 +1684,7 @@ function fileToDataUrl(file) {
   });
 }
 
-// Kompres + resize gambar sebelum disimpan sebagai base64 di wm_kv_store —
+// Kompres + resize gambar sebelum disimpan sebagai base64 di kv_worldmd —
 // foto HP asli bisa 3-5MB, di sini dikecilkan supaya baris database tidak
 // membengkak (umumnya jadi <300KB untuk screenshot pembayaran).
 async function compressImageFile(file, maxDim, quality) {
@@ -2169,7 +2169,7 @@ function viewSettingsSupabase() {
   const bootstrapFilled = BOOTSTRAP_SUPABASE.url && BOOTSTRAP_SUPABASE.anonKey;
   return `
     <div class="view">
-      ${sectionHead("Admin · Database Akun", "Supabase", "Satu tabel generik (wm_kv_store) menyimpan Pengaturan situs, akun user, dan verifikasi Telegram — semuanya otomatis sama untuk semua pengunjung, bukan cuma tersimpan di browser kamu.", true)}
+      ${sectionHead("Admin · Database Akun", "Supabase", "Satu tabel generik (kv_worldmd) menyimpan Pengaturan situs, akun user, dan verifikasi Telegram — semuanya otomatis sama untuk semua pengunjung, bukan cuma tersimpan di browser kamu.", true)}
 
       <div class="panel">
         <div class="panel-title">Status sinkronisasi ke semua pengunjung</div>
@@ -2194,13 +2194,13 @@ function viewSettingsSupabase() {
       <div class="panel" id="sqlSetupPanel">
         <div class="panel-title">SQL setup</div>
         <p class="desc" style="margin-bottom:14px;">Cukup satu tabel generik untuk semuanya — jalankan sekali lewat SQL Editor di Supabase. Anon key (dipakai browser) sengaja <strong>tidak diizinkan</strong> membuat tabel sendiri (proteksi Supabase), jadi langkah ini memang harus manual sekali di awal:</p>
-        <pre class="mono" id="sqlSetupBlock" style="background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:11.5px; overflow-x:auto; white-space:pre;">create table if not exists public.${esc(sb.table || "wm_kv_store")} (
+        <pre class="mono" id="sqlSetupBlock" style="background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:11.5px; overflow-x:auto; white-space:pre;">create table if not exists public.${esc(sb.table || "kv_worldmd")} (
   key text primary key,
   value jsonb not null,
   updated_at timestamptz not null default now()
 );
-alter table public.${esc(sb.table || "wm_kv_store")} enable row level security;
-create policy "wm allow anon" on public.${esc(sb.table || "wm_kv_store")}
+alter table public.${esc(sb.table || "kv_worldmd")} enable row level security;
+create policy "wm allow anon" on public.${esc(sb.table || "kv_worldmd")}
   for all using (true) with check (true);</pre>
         <div class="form-row" style="margin-top:10px;">
           <button class="btn btn-secondary" id="sqlCopyBtn">Salin SQL</button>
@@ -2250,7 +2250,7 @@ bindHandlers["settings-supabase"] = () => {
     const statusEl = document.getElementById("sbStatus");
     sb.url = document.getElementById("sbUrl").value.trim();
     sb.anonKey = document.getElementById("sbKey").value.trim();
-    sb.table = document.getElementById("sbTable").value.trim() || "wm_kv_store";
+    sb.table = document.getElementById("sbTable").value.trim() || "kv_worldmd";
     await saveSettingsWithConfirmation("sbStatus");
     if (sb.url && sb.anonKey) {
       try {
@@ -2268,7 +2268,7 @@ bindHandlers["settings-supabase"] = () => {
     const statusEl = document.getElementById("sbStatus");
     const url = document.getElementById("sbUrl").value.trim();
     const anonKey = document.getElementById("sbKey").value.trim();
-    const table = document.getElementById("sbTable").value.trim() || "wm_kv_store";
+    const table = document.getElementById("sbTable").value.trim() || "kv_worldmd";
     if (!url || !anonKey) { statusEl.textContent = "Isi Project URL dan Anon key dulu."; statusEl.className = "danger-text"; return; }
     statusEl.textContent = "Menguji koneksi…"; statusEl.className = "muted";
     try {
