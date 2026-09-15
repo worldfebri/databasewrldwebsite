@@ -1,0 +1,18 @@
+{
+  "name": "worldmarket-payment-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Proxy server kecil antara website WorldMarket Panel dan FR3 NEWERA, supaya request payment gateway tidak diblokir CORS oleh browser.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}
