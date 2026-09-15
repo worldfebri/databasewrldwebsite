@@ -266,8 +266,8 @@ const DEFAULT_SETTINGS = {
   groq: { apiKey: "", model: "openai/gpt-oss-120b" },
   github: { repo: "", branch: "main", token: "", path: "worldmarket-database.json" },
   githubRoles: { repo: "", branch: "main", token: "", path: "database/additional/role_db.json" },
-  supabase: { url: "", anonKey: "", table: "kv_store" },
-  payment: { apiKey: "", addMdrToCustomer: false },
+  supabase: { url: "", anonKey: "", table: "wm_kv_store" },
+  payment: { qrisImage: "", ownerTelegramId: "" },
 };
 
 const NAV_PUBLIC = [
@@ -283,6 +283,7 @@ const NAV_ADMIN = [
   { id: "roles", label: "Role DB", icon: "☰" },
   { id: "a-apikeys", label: "Apikey Shop", icon: "◆" },
   { id: "a-quotas", label: "Quota Shop", icon: "▣" },
+  { id: "manual-payments", label: "Konfirmasi Pembayaran", icon: "🧾" },
   { id: "warns", label: "Warn System", icon: "!" },
   { id: "promo", label: "Promo Reminder", icon: "»" },
   { id: "aiworld-config", label: "Konfigurasi AI World", icon: "∴" },
@@ -296,7 +297,7 @@ const NAV_ADMIN = [
 
 let state = {
   currentView: "public", tab: "p-dashboard", isAdmin: false,
-  owners: [], roles: [], apikeys: [], quotas: [], warns: [],
+  owners: [], roles: [], apikeys: [], quotas: [], warns: [], manualOrders: [],
   settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
   admin: { ...DEFAULT_ADMIN },
   users: [], currentUser: null,
@@ -317,7 +318,7 @@ async function hashPassword(pw) {
 
 // ---------------------------------------------------------------------------
 // Supabase lewat REST langsung (tanpa library supabase-js) — satu tabel
-// generik "kv_store" (key, value jsonb) dipakai untuk SEMUA data bersama:
+// generik "wm_kv_store" (key, value jsonb) dipakai untuk SEMUA data bersama:
 // pengaturan situs, akun user, dan permintaan verifikasi Telegram. Setiap
 // bagian data punya "key" tetap sendiri di dalam tabel yang sama.
 // ---------------------------------------------------------------------------
@@ -342,7 +343,7 @@ function supaHeaders(extra) {
   const cfg = sbConfig();
   return Object.assign({ apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}`, "Content-Type": "application/json" }, extra || {});
 }
-function kvTable() { return state.settings.supabase?.table || "kv_store"; }
+function kvTable() { return state.settings.supabase?.table || "wm_kv_store"; }
 async function kvGet(key) {
   const cfg = sbConfig();
   if (!cfg.url || !cfg.anonKey) return null;
@@ -369,7 +370,7 @@ async function kvSet(key, value) {
 // --- Sinkronisasi Pengaturan (semua yang diatur admin: GitHub, Payment,
 // Groq, harga toko, dll) — supaya otomatis sama untuk semua pengunjung. ---
 async function pushSettingsToSupabase() {
-  return await kvSet("wm:settings", state.settings);
+  return await kvSet("wm_settings", state.settings);
 }
 
 // Simpan + pastikan write Supabase benar-benar berhasil.
@@ -402,7 +403,6 @@ async function saveSettingsWithConfirmation(statusElId) {
   notify(remoteOk ? "Pengaturan tersimpan di Supabase." : (synced ? "Supabase gagal menyimpan pengaturan." : "Pengaturan tersimpan lokal."));
   return remoteOk;
 }
-async function pullSettingsFromSupabase() { return await kvGet("wm_settings"); }
 async function pullSettingsFromSupabase() { return await kvGet("wm_settings"); }
 
 // --- Akun user (daftar/masuk/profil) — disimpan sebagai satu array di
@@ -522,9 +522,9 @@ async function _rawSaveKey(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); }
   catch (e) { console.error("storage set failed", key, e); }
 }
-const SHOP_KEYS = ["wm:owners", "wm:roles", "wm:apikeys", "wm:quotas", "wm:warns"];
+const SHOP_KEYS = ["wm:owners", "wm:roles", "wm:apikeys", "wm:quotas", "wm:warns", "wm:manualOrders"];
 function pushShopToKv() {
-  kvSet("wm_shop", { owners: state.owners, roles: state.roles, apikeys: state.apikeys, quotas: state.quotas, warns: state.warns });
+  kvSet("wm_shop", { owners: state.owners, roles: state.roles, apikeys: state.apikeys, quotas: state.quotas, warns: state.warns, manualOrders: state.manualOrders });
 }
 
 // Mengikuti pola script bot Telegram asli: DUA database GitHub terpisah —
@@ -590,13 +590,13 @@ function notify(msg) {
 }
 
 async function boot() {
-  const [o, r, k, q, w, s, a, u] = await Promise.all([
+  const [o, r, k, q, w, mo, s, a, u] = await Promise.all([
     loadKey("wm:owners", []), loadKey("wm:roles", []), loadKey("wm:apikeys", []),
-    loadKey("wm:quotas", []), loadKey("wm:warns", []),
+    loadKey("wm:quotas", []), loadKey("wm:warns", []), loadKey("wm:manualOrders", []),
     loadKey("wm:settings", DEFAULT_SETTINGS), loadKey("wm:admin", null),
     loadKey("wm:users", []),
   ]);
-  state.owners = o; state.roles = r; state.apikeys = k; state.quotas = q; state.warns = w;
+  state.owners = o; state.roles = r; state.apikeys = k; state.quotas = q; state.warns = w; state.manualOrders = mo;
   state.settings = deepMerge(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), s || {});
   state.users = u;
 
@@ -630,9 +630,10 @@ async function boot() {
       if (shop.apikeys) state.apikeys = shop.apikeys;
       if (shop.quotas) state.quotas = shop.quotas;
       if (shop.warns) state.warns = shop.warns;
+      if (shop.manualOrders) state.manualOrders = shop.manualOrders;
       await Promise.all([
         _rawSaveKey("wm:owners", state.owners), _rawSaveKey("wm:roles", state.roles), _rawSaveKey("wm:apikeys", state.apikeys),
-        _rawSaveKey("wm:quotas", state.quotas), _rawSaveKey("wm:warns", state.warns),
+        _rawSaveKey("wm:quotas", state.quotas), _rawSaveKey("wm:warns", state.warns), _rawSaveKey("wm:manualOrders", state.manualOrders),
       ]);
     }
   } catch (e) { console.warn("Gagal ambil data toko dari Supabase, pakai cache lokal:", e.message); }
@@ -1001,6 +1002,7 @@ function render() {
     "settings-payment": viewSettingsPayment,
     "settings-supabase": viewSettingsSupabase,
     "settings-accounts": viewSettingsAccounts,
+    "manual-payments": viewManualPayments,
   };
   main.innerHTML = views[state.tab] ? views[state.tab]() : "";
   bindHandlers[state.tab] && bindHandlers[state.tab]();
@@ -1244,16 +1246,13 @@ bindHandlers.apikeys = () => {
     if (!buyer) return notify("Isi nama/ID kamu dulu.");
     if (!botNumber) return notify("Isi nomor bot yang mau dipasangi apikey.");
     const price = amount * s.pricePerUnit;
-    const issue = () => {
-      const record = { id: uid(), buyer, botNumber, amount, price, createdAt: now() };
-      state.apikeys.unshift(record);
-      saveKey("wm:apikeys", state.apikeys);
-      notifyWebhook(`Order apikey baru: ${amount} unit untuk bot ${botNumber} oleh ${buyer} (${rupiah(record.price)})`);
-      notify("Pembayaran berhasil, apikey terpasang.");
+    const onApproved = async () => {
+      await refreshManualOrderStatus("");
+      notify("Pembayaran disetujui, apikey terpasang.");
       document.getElementById("akResult").innerHTML = `<div class="panel"><div class="panel-title">Apikey berhasil dipasang</div><div>Nomor bot <span class="mono">${esc(botNumber)}</span> sekarang punya ${amount} unit apikey aktif.</div></div>`;
     };
-    if (!fr3ApiKey()) { showPaymentDownScreen(); return; }
-    openCheckoutModal(price, `Apikey ${amount} unit untuk ${botNumber}`, issue);
+    if (!manualPaymentConfigured()) { showPaymentDownScreen(); return; }
+    openManualQrisModal(price, `Apikey ${amount} unit untuk ${botNumber}`, "apikey", { botNumber, amount }, buyer, onApproved);
   });
 };
 
@@ -1309,16 +1308,14 @@ bindHandlers.quotas = () => {
     if (!buyer) return notify("Isi nama/ID kamu dulu.");
     const type = typeSel.value, amount = Number(amtSel.value), unit = type === "temp" ? s.priceTemp : s.pricePermanent;
     const price = unit * amount;
-    const issue = () => {
-      const record = { id: uid(), buyer, type, amount, price, createdAt: now(), expiresAt: type === "temp" ? now() + s.tempDurationDays * 86400000 : null };
-      state.quotas.unshift(record);
-      saveKey("wm:quotas", state.quotas);
-      notifyWebhook(`Order kuota baru: ${type} x${amount} oleh ${buyer} (${rupiah(record.price)})`);
-      notify(`Pembayaran berhasil, kuota ${type} x${amount} diterbitkan.`);
-      document.getElementById("qResult").innerHTML = `<div class="panel"><div class="panel-title">Kuota kamu</div><div>${type} × ${amount} — ${record.expiresAt ? "berlaku sampai " + fmtDate(record.expiresAt) : "tanpa batas waktu"}</div></div>`;
+    const onApproved = async () => {
+      await refreshManualOrderStatus("");
+      const rec = state.quotas.find((qq) => qq.buyer === buyer && qq.type === type && qq.amount === amount) || {};
+      notify(`Pembayaran disetujui, kuota ${type} x${amount} diterbitkan.`);
+      document.getElementById("qResult").innerHTML = `<div class="panel"><div class="panel-title">Kuota kamu</div><div>${type} × ${amount} — ${rec.expiresAt ? "berlaku sampai " + fmtDate(rec.expiresAt) : "tanpa batas waktu"}</div></div>`;
     };
-    if (!fr3ApiKey()) { showPaymentDownScreen(); return; }
-    openCheckoutModal(price, `Kuota ${type} x${amount}`, issue);
+    if (!manualPaymentConfigured()) { showPaymentDownScreen(); return; }
+    openManualQrisModal(price, `Kuota ${type} x${amount}`, "quota", { type, amount }, buyer, onApproved);
   });
 };
 
@@ -1652,44 +1649,127 @@ function buildRolesExport() {
 }
 
 // ---------------------------------------------------------------------------
-// Payment Gateway (FR3 NEWERA) — website TIDAK PERNAH menyimpan API key FR3.
-// Semua request lewat payment-server (project terpisah, lihat folder
-// payment-server/) yang menyimpan API key itu dengan aman di server.
+// ---------------------------------------------------------------------------
+// Pembayaran QRIS MANUAL — tidak ada payment gateway otomatis lagi.
+//
+// Alurnya:
+// 1) Admin upload SATU gambar QRIS statis + isi "Owner Telegram ID" di
+//    Pengaturan > Payment Gateway (viewSettingsPayment di bawah).
+// 2) Pembeli klik beli -> lihat QR itu -> transfer manual -> upload
+//    screenshot bukti transfer (openManualQrisModal).
+// 3) Bukti (base64, dikompres dulu) disimpan sebagai satu "order" baru di
+//    dalam array yang SAMA dengan owner/apikey/kuota/warn, yaitu bundel
+//    "wm_shop" di Supabase wm_kv_store (key lokal "wm:manualOrders").
+// 4) Bot Telegram (folder bot/, index.js) polling array itu, kirim FOTO
+//    bukti ke Owner Telegram ID dengan tombol inline "✅ ACC" / "❌ Tolak".
+//    Begitu admin menekan salah satu tombol (dari Telegram ATAU dari
+//    halaman Admin > Konfirmasi Pembayaran di website ini), status order
+//    berubah DAN apikey/kuotanya langsung diterbitkan server-side lewat
+//    finalizeManualOrder() — jadi tetap jalan walau browser pembeli sudah
+//    ditutup. Website pembeli yang masih terbuka tinggal polling status
+//    order itu tiap beberapa detik untuk menampilkan hasilnya.
 // ---------------------------------------------------------------------------
 
-const FR3_BASE = "https://fr3newera.com/api/v1";
-function fr3ApiKey() {
-  return state.settings.payment?.apiKey?.trim() || "";
-}
-async function createCheckout(nominal) {
-  const apikey = fr3ApiKey();
-  if (!apikey) throw new Error("Payment gateway belum dikonfigurasi admin.");
-  const res = await fetch(`${FR3_BASE}/topup`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ apikey, nominal, add_mdr_to_customer: !!state.settings.payment.addMdrToCustomer }),
-  });
-  const data = await res.json();
-  if (!res.ok || data.status !== 200) throw new Error(data.error || data.message || "Gagal membuat QRIS.");
-  return { trxId: data.data.trxId, qrString: data.data.qr_string, totalTransfer: data.data.totalTransfer, expiry: data.data.expiry };
-}
-async function checkCheckoutStatus(trxId) {
-  const apikey = fr3ApiKey();
-  if (!apikey) return null;
-  const res = await fetch(`${FR3_BASE}/check-status?apikey=${encodeURIComponent(apikey)}&idTransaksi=${encodeURIComponent(trxId)}`);
-  const data = await res.json();
-  if (!res.ok || data.status !== 200) throw new Error(data.error || "Gagal cek status pembayaran.");
-  return { status: data.data.status, amount: data.data.amount, totalTransfer: data.data.totalTransfer };
-}
-function cancelCheckout(trxId) {
-  const apikey = fr3ApiKey();
-  if (!apikey) return;
-  fetch(`${FR3_BASE}/topup/cancel`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ apikey, trxId }) }).catch(() => {});
-}
-function qrImageUrl(qrString) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(qrString)}`;
+function manualPaymentConfigured() {
+  const p = state.settings.payment || {};
+  return !!(p.qrisImage && p.ownerTelegramId);
 }
 
-// Modal QRIS generik: onSuccess dipanggil sekali setelah status SUCCESS.
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Gagal membaca file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+// Kompres + resize gambar sebelum disimpan sebagai base64 di wm_kv_store —
+// foto HP asli bisa 3-5MB, di sini dikecilkan supaya baris database tidak
+// membengkak (umumnya jadi <300KB untuk screenshot pembayaran).
+async function compressImageFile(file, maxDim, quality) {
+  maxDim = maxDim || 900; quality = quality || 0.72;
+  const dataUrl = await fileToDataUrl(file);
+  if (!file.type || !file.type.startsWith("image/")) return dataUrl;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width, height = img.height;
+      if (width > maxDim || height > maxDim) {
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale); height = Math.round(height * scale);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      try { resolve(canvas.toDataURL("image/jpeg", quality)); }
+      catch { resolve(dataUrl); }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+async function submitManualOrder(order) {
+  state.manualOrders.unshift(order);
+  await saveKey("wm:manualOrders", state.manualOrders);
+  return order;
+}
+
+// Tarik status order terbaru langsung dari bundel "wm_shop" di Supabase
+// (bukan cuma cache lokal), supaya perubahan yang dibuat admin/bot dari
+// device lain langsung kelihatan.
+async function refreshManualOrderStatus(orderId) {
+  try {
+    const shop = await kvGet("wm_shop");
+    if (!shop) return null;
+    if (Array.isArray(shop.manualOrders)) {
+      state.manualOrders = shop.manualOrders;
+    }
+    if (shop.apikeys) state.apikeys = shop.apikeys;
+    if (shop.quotas) state.quotas = shop.quotas;
+    return state.manualOrders.find((o) => o.id === orderId) || null;
+  } catch { return null; }
+}
+
+// Diterbitkan SEKALI saat sebuah order di-ACC (dari halaman admin ini
+// ATAU lewat tombol Telegram, lihat catatan finalizeManualOrder yang sama
+// persis di bot/index.js). Ini yang membuat apikey/kuota benar-benar
+// terpasang walau browser pembeli sudah ditutup.
+function finalizeManualOrder(order) {
+  if (order.kind === "apikey") {
+    const record = { id: uid(), buyer: order.buyer, botNumber: order.meta?.botNumber || "", amount: Number(order.meta?.amount || 0), price: order.price, createdAt: now() };
+    state.apikeys.unshift(record);
+    saveKey("wm:apikeys", state.apikeys);
+    notifyWebhook(`Order apikey baru (QRIS manual): ${record.amount} unit untuk bot ${record.botNumber} oleh ${record.buyer} (${rupiah(record.price)})`);
+  } else if (order.kind === "quota") {
+    const type = order.meta?.type || "temp", amount = Number(order.meta?.amount || 0);
+    const s = state.settings.quotaShop;
+    const record = { id: uid(), buyer: order.buyer, type, amount, price: order.price, createdAt: now(), expiresAt: type === "temp" ? now() + (s.tempDurationDays || 30) * 86400000 : null };
+    state.quotas.unshift(record);
+    saveKey("wm:quotas", state.quotas);
+    notifyWebhook(`Order kuota baru (QRIS manual): ${type} x${amount} oleh ${order.buyer} (${rupiah(order.price)})`);
+  }
+}
+
+// Dipakai oleh halaman Admin > Konfirmasi Pembayaran (viewManualPayments).
+async function decideManualOrder(id, status) {
+  const idx = state.manualOrders.findIndex((o) => o.id === id);
+  if (idx < 0) return;
+  const order = state.manualOrders[idx];
+  if (order.status !== "pending") { notify("Order ini sudah diproses sebelumnya."); return; }
+  let note = "";
+  if (status === "rejected") note = prompt("Alasan penolakan (opsional):") || "";
+  order.status = status;
+  order.decidedAt = now();
+  order.decidedBy = `admin-website${state.admin?.username ? ":" + state.admin.username : ""}`;
+  if (note) order.decidedNote = note;
+  if (status === "approved") finalizeManualOrder(order);
+  await saveKey("wm:manualOrders", state.manualOrders);
+  notify(status === "approved" ? "Pesanan disetujui & diterbitkan." : "Pesanan ditolak.");
+  render();
+}
+
 function showPaymentDownScreen() {
   if (document.getElementById("paymentDownOverlay")) return;
   const overlay = document.createElement("div");
@@ -1698,73 +1778,86 @@ function showPaymentDownScreen() {
   overlay.innerHTML = `
     <div class="payment-down-icon">⚠️</div>
     <div class="payment-down-title">Pembayaran Sedang Bermasalah</div>
-    <p class="payment-down-desc">Sistem pembayaran belum bisa memproses transaksi saat ini. Silakan coba lagi beberapa saat lagi, atau hubungi admin kalau masalah ini terus berlanjut.</p>
+    <p class="payment-down-desc">QRIS manual belum dikonfigurasi lengkap oleh admin (gambar QRIS dan/atau Owner Telegram ID masih kosong di Pengaturan > Payment Gateway). Silakan hubungi admin, atau coba lagi beberapa saat lagi.</p>
     <button class="btn btn-secondary" id="paymentDownClose">Tutup</button>`;
   document.body.appendChild(overlay);
   overlay.querySelector("#paymentDownClose").addEventListener("click", () => overlay.remove());
 }
 
-function openCheckoutModal(nominal, label, onSuccess) {
+// Modal QRIS manual: tampilkan QR statis, pembeli upload bukti transfer,
+// order tersimpan sebagai "pending", lalu polling sampai admin/bot
+// menekan ACC ("approved") atau Tolak ("rejected"). onApproved dipanggil
+// SEKALI setelah status jadi "approved" (apikey/kuota sudah diterbitkan
+// oleh finalizeManualOrder di sisi yang meng-ACC, bukan di sini).
+function openManualQrisModal(nominal, label, kind, meta, buyer, onApproved) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay"; overlay.id = "checkoutOverlay";
   overlay.innerHTML = `
-    <div class="modal-box" style="max-width:360px; text-align:center;">
+    <div class="modal-box" style="max-width:380px; text-align:center;">
       <h2 class="modal-title">Bayar dengan QRIS</h2>
       <p class="modal-sub">${esc(label)} — ${rupiah(nominal)}</p>
-      <div id="checkoutBody"><div class="muted" style="font-size:13px;">Membuat QRIS…</div></div>
+      <img src="${esc(state.settings.payment.qrisImage)}" alt="QRIS" style="width:100%; max-width:240px; border-radius:8px; margin:10px auto; display:block; border:1px solid var(--border);" />
+      <p class="desc" style="margin:6px 0 12px;">Scan &amp; transfer tepat <strong>${rupiah(nominal)}</strong>, lalu upload screenshot bukti pembayaran di bawah ini.</p>
+      <label class="field" style="text-align:left;">
+        <span>Bukti pembayaran (screenshot)</span>
+        <input class="input" type="file" accept="image/*" id="proofFileInput" />
+      </label>
+      <div id="checkoutBody" style="margin-top:10px;"></div>
       <div class="modal-actions">
-        <button class="btn btn-secondary" id="checkoutCancel" style="width:100%;">Batalkan</button>
+        <button class="btn btn-primary" id="proofSubmitBtn" style="width:100%;">Kirim bukti &amp; tunggu konfirmasi</button>
+        <button class="btn btn-secondary" id="checkoutCancel" style="width:100%; margin-top:8px;">Batalkan</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
-  let trxId = null, polling = null;
-  const close = () => { clearInterval(polling); if (trxId) cancelCheckout(trxId); overlay.remove(); };
+  let polling = null, orderId = null, submitting = false;
+  const close = () => { clearInterval(polling); overlay.remove(); };
   overlay.querySelector("#checkoutCancel").addEventListener("click", close);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
 
-  (async () => {
+  overlay.querySelector("#proofSubmitBtn").addEventListener("click", async () => {
+    if (submitting || orderId) return;
+    const fileInput = overlay.querySelector("#proofFileInput");
     const body = overlay.querySelector("#checkoutBody");
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) { body.innerHTML = `<div class="danger-text" style="font-size:13px;">Upload bukti pembayaran dulu.</div>`; return; }
+    submitting = true;
+    const submitBtn = overlay.querySelector("#proofSubmitBtn");
+    submitBtn.disabled = true;
+    body.innerHTML = `<div class="muted" style="font-size:13px;">Mengunggah bukti…</div>`;
     try {
-      const req = await createCheckout(nominal);
-      trxId = req.trxId;
-      body.innerHTML = `
-        <img src="${qrImageUrl(req.qrString)}" alt="QRIS" style="width:100%; max-width:220px; border-radius:8px; margin:0 auto; display:block;" />
-        <p class="desc" style="margin:12px 0 4px;">Total bayar: <strong>${rupiah(req.totalTransfer)}</strong></p>
-        <div id="checkoutStatusMsg" class="muted" style="font-size:13px;">Menunggu pembayaran…</div>`;
-      let failCount = 0;
-      const doCheck = async () => {
-        try {
-          const st = await checkCheckoutStatus(trxId);
-          failCount = 0;
-          const msgEl = overlay.querySelector("#checkoutStatusMsg");
-          if (!msgEl || !st) return;
-          if (st.status === "SUCCESS") {
-            clearInterval(polling);
-            trxId = null;
-            overlay.remove();
-            onSuccess();
-          } else if (st.status === "EXPIRED" || st.status === "CANCELED") {
-            clearInterval(polling);
-            msgEl.textContent = "QRIS kedaluwarsa/dibatalkan. Tutup dan coba beli lagi.";
-          } else {
-            msgEl.textContent = "Menunggu pembayaran…";
-          }
-        } catch (e) {
-          failCount++;
-          if (failCount >= 2) {
-            clearInterval(polling);
-            trxId = null;
-            overlay.remove();
-            showPaymentDownScreen();
-          }
-        }
+      const proofImage = await compressImageFile(file);
+      const order = {
+        id: uid(), kind, buyer: buyer || state.currentUser?.username || "guest",
+        buyerTelegramId: state.currentUser?.telegramId || "",
+        detail: label, price: nominal, meta: meta || null,
+        proofImage, status: "pending", createdAt: now(),
+        notified: false, notifyAttempts: 0, notifiedChatId: null, notifiedMessageId: null, notifiedCaption: null,
+        decidedAt: null, decidedBy: null, decidedNote: null,
       };
-      polling = setInterval(doCheck, 4000);
+      await submitManualOrder(order);
+      orderId = order.id;
+      fileInput.disabled = true;
+      submitBtn.style.display = "none";
+      body.innerHTML = `<div class="muted" style="font-size:13px;">Bukti terkirim ke admin. Menunggu konfirmasi ACC/Tolak lewat Telegram…</div>`;
+      polling = setInterval(async () => {
+        const row = await refreshManualOrderStatus(orderId);
+        if (!row) return;
+        if (row.status === "approved") {
+          clearInterval(polling);
+          overlay.remove();
+          onApproved();
+        } else if (row.status === "rejected") {
+          clearInterval(polling);
+          body.innerHTML = `<div class="danger-text" style="font-size:13px;">Bukti pembayaran ditolak admin${row.decidedNote ? ": " + esc(row.decidedNote) : "."} Tutup lalu coba lagi dengan bukti yang benar.</div>`;
+        }
+      }, 4000);
     } catch (e) {
-      overlay.remove();
-      showPaymentDownScreen();
+      body.innerHTML = `<div class="danger-text" style="font-size:13px;">Gagal mengunggah bukti: ${esc(e.message)}</div>`;
+      submitBtn.disabled = false;
+    } finally {
+      submitting = false;
     }
-  })();
+  });
 }
 
 function viewMigration() {
@@ -1989,56 +2082,94 @@ bindHandlers["settings-github"] = () => {
 };
 
 function viewSettingsPayment() {
-  const p = state.settings.payment || { apiKey: "", addMdrToCustomer: false };
+  const p = state.settings.payment || { qrisImage: "", ownerTelegramId: "" };
   return `
     <div class="view">
-      ${sectionHead("Admin · Payment Gateway", "FR3 NEWERA (QRIS)", "Pembayaran apikey & kuota lewat QRIS, terhubung langsung ke fr3newera.com dari website ini.", true)}
+      ${sectionHead("Admin \u00b7 Payment Gateway", "QRIS Manual", "Tidak ada payment gateway otomatis. Upload satu gambar QRIS statis untuk menerima transfer, dan isi Telegram ID owner/developer yang akan menerima notifikasi ACC/Tolak dari bot.", true)}
       <div class="panel">
         <div class="grid-2">
-          <label class="field"><span>API Key FR3 NEWERA</span><input class="input" type="password" id="payApiKey" value="${esc(p.apiKey || "")}" placeholder="AO_xxxxx…" /></label>
-          <div class="kv" style="border:none; padding-top:22px;"><span>MDR ditanggung customer</span><button class="toggle ${p.addMdrToCustomer ? "on" : ""}" id="payMdrToggle"><span class="toggle-knob"></span></button></div>
+          <label class="field">
+            <span>Gambar QRIS (screenshot/foto QRIS statis kamu)</span>
+            <input class="input" type="file" accept="image/*" id="payQrisFile" />
+          </label>
+          <label class="field"><span>Owner Telegram ID</span><input class="input" id="payOwnerId" value="${esc(p.ownerTelegramId || "")}" placeholder="contoh: 123456789" /></label>
+        </div>
+        <div id="payQrisPreviewWrap" style="margin-top:10px;">
+          ${p.qrisImage ? `<img id="payQrisPreview" src="${p.qrisImage}" style="width:160px; border-radius:8px; border:1px solid var(--border);" />` : `<div class="muted" style="font-size:13px;" id="payQrisPreviewEmpty">Belum ada gambar QRIS tersimpan.</div>`}
         </div>
         <div class="form-row" style="margin-top:10px;">
           <button class="btn btn-violet" id="paySaveBtn">Simpan Konfigurasi</button>
-          <button class="btn btn-secondary" id="payTestBtn">Tes koneksi & cek saldo</button>
         </div>
         <div id="paySaveStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
-        <div id="payStatus" class="muted" style="font-size:13px; margin-top:4px;"></div>
-        <p class="desc" style="margin-top:10px;">Kalau API key ini kosong atau tidak valid, pengunjung yang klik beli akan melihat layar penuh "Pembayaran Sedang Bermasalah" — bukan pop-up kecil — supaya jelas kalau toko sedang tidak bisa memproses transaksi.</p>
-        <p class="desc" style="margin-top:10px; color:var(--red);">Perlu diketahui: API key ini tersimpan di dalam file website (berjalan di browser pengunjung). Siapa pun yang membuka "View Source"/DevTools di halaman ini berpotensi melihat nilainya. Simpan hanya kalau kamu memang memilih cara ini dengan sadar akan risikonya.</p>
+        <p class="desc" style="margin-top:10px;">Owner Telegram ID di sini HARUS sudah pernah kirim <code>/start</code> ke bot Telegram (folder <code>bot/</code>), karena bot tidak bisa mengirim pesan duluan ke orang yang belum pernah chat dengannya. Tambahkan juga ID yang SAMA ke <code>developerIds</code> di <code>bot/config.js</code> supaya tombol ACC/Tolak di Telegram cuma bisa ditekan oleh owner yang sah \u2014 keduanya harus cocok/nyambung.</p>
+        <p class="desc" style="margin-top:6px;">Kalau gambar QRIS kosong atau Owner Telegram ID kosong, pengunjung yang klik beli akan melihat layar "Pembayaran Sedang Bermasalah".</p>
+        <p class="desc" style="margin-top:10px; color:var(--red);">Perlu diketahui: sama seperti pengaturan lain di panel ini, gambar QRIS dan Owner Telegram ID tersimpan di dalam file website yang berjalan di browser. Siapa pun yang membuka "View Source"/DevTools berpotensi melihatnya \u2014 untuk data ini risikonya kecil (QRIS memang untuk dipajang publik, dan Telegram ID bukan rahasia), tapi tetap perlu diketahui.</p>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Cek pesanan yang butuh konfirmasi</div>
+        <p class="desc" style="margin-bottom:10px;">Semua bukti pembayaran yang masuk (ACC/Tolak) dikelola di menu <a href="#" data-goto="manual-payments" style="color:var(--amber);">Konfirmasi Pembayaran</a>, atau langsung lewat tombol di Telegram.</p>
       </div>
     </div>`;
 }
 bindHandlers["settings-payment"] = () => {
-  if (!state.settings.payment) state.settings.payment = { apiKey: "", addMdrToCustomer: false };
-  document.getElementById("payMdrToggle").addEventListener("click", (e) => {
-    state.settings.payment.addMdrToCustomer = !state.settings.payment.addMdrToCustomer;
-    e.currentTarget.classList.toggle("on", state.settings.payment.addMdrToCustomer);
+  if (!state.settings.payment) state.settings.payment = { qrisImage: "", ownerTelegramId: "" };
+  document.getElementById("payQrisFile").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressImageFile(file, 700, 0.85);
+      state.settings.payment.qrisImage = dataUrl;
+      document.getElementById("payQrisPreviewWrap").innerHTML = `<img id="payQrisPreview" src="${dataUrl}" style="width:160px; border-radius:8px; border:1px solid var(--border);" />`;
+      notify("Gambar QRIS siap, klik \"Simpan Konfigurasi\" untuk menyimpannya.");
+    } catch (err) { notify("Gagal memproses gambar: " + err.message); }
   });
   document.getElementById("paySaveBtn").addEventListener("click", async () => {
-    state.settings.payment.apiKey = document.getElementById("payApiKey").value.trim();
+    state.settings.payment.ownerTelegramId = document.getElementById("payOwnerId").value.trim();
     await saveSettingsWithConfirmation("paySaveStatus");
   });
-  document.getElementById("payTestBtn").addEventListener("click", async () => {
-    const statusEl = document.getElementById("payStatus");
-    const apikey = document.getElementById("payApiKey").value.trim();
-    if (!apikey) { statusEl.textContent = "Isi API Key dulu."; statusEl.className = "danger-text"; return; }
-    statusEl.textContent = "Menguji koneksi…"; statusEl.className = "muted";
-    try {
-      const res = await fetch(`${FR3_BASE}/check-saldo?apikey=${encodeURIComponent(apikey)}`);
-      const data = await res.json();
-      if (!res.ok || data.status !== 200) throw new Error(data.error || "API key tidak valid.");
-      statusEl.textContent = `Berhasil terhubung. Saldo FR3 NEWERA saat ini: ${rupiah(data.data.saldo)}.`; statusEl.className = "ok-text";
-    } catch (e) { statusEl.textContent = "Gagal terhubung: " + e.message; statusEl.className = "danger-text"; }
-  });
+  const gotoManualPayments = document.querySelector('[data-goto="manual-payments"]');
+  if (gotoManualPayments) gotoManualPayments.addEventListener("click", (e) => { e.preventDefault(); state.tab = "manual-payments"; renderSidebar(); render(); });
 };
+
+function viewManualPayments() {
+  const orders = [...state.manualOrders].sort((a, b) => b.createdAt - a.createdAt);
+  const pending = orders.filter((o) => o.status === "pending");
+  const decided = orders.filter((o) => o.status !== "pending").slice(0, 30);
+  const card = (o) => `
+    <div class="panel" style="margin-bottom:12px;" data-order-card="${o.id}">
+      <div class="panel-title">${esc(o.detail)} \u2014 ${rupiah(o.price)}</div>
+      <div class="muted" style="font-size:12.5px; margin-bottom:8px;">Pembeli: ${esc(o.buyer)}${o.buyerTelegramId ? " \u00b7 TG " + esc(o.buyerTelegramId) : ""} \u00b7 ${fmtDate(o.createdAt)}</div>
+      ${o.proofImage ? `<img src="${o.proofImage}" style="max-width:220px; border-radius:8px; border:1px solid var(--border); display:block; margin-bottom:10px;" />` : `<div class="muted" style="font-size:12.5px;">Tidak ada gambar bukti.</div>`}
+      ${o.status === "pending"
+        ? `<div class="form-row">
+             <button class="btn btn-primary" data-acc-order="${o.id}">\u2705 ACC</button>
+             <button class="btn btn-ghost btn-danger" data-reject-order="${o.id}">\u274c Tolak</button>
+           </div>
+           ${o.notified ? `<p class="desc" style="margin-top:8px;">Sudah dikirim ke Telegram owner, menunggu ditekan di sana atau di sini.</p>` : `<p class="desc" style="margin-top:8px;">Belum terkirim ke Telegram (cek Owner Telegram ID di Pengaturan, atau bot sedang offline) \u2014 tetap bisa di-ACC/Tolak manual dari sini.</p>`}`
+        : `<span class="pill ${o.status === "approved" ? "pill-on" : "pill-danger"}">${o.status === "approved" ? "Disetujui" : "Ditolak"}</span>
+           <span class="muted" style="font-size:12px;">${o.decidedAt ? "\u00b7 " + fmtDate(o.decidedAt) : ""}${o.decidedBy ? " oleh " + esc(String(o.decidedBy)) : ""}</span>
+           ${o.decidedNote ? `<p class="desc" style="margin-top:6px;">Catatan: ${esc(o.decidedNote)}</p>` : ""}`}
+    </div>`;
+  return `
+    <div class="view">
+      ${sectionHead("Admin \u00b7 Konfirmasi Pembayaran", "QRIS Manual", "Tekan ACC untuk meloloskan pesanan (apikey/kuota langsung diterbitkan) atau Tolak untuk membatalkan. Tombol yang sama juga tersedia lewat bot Telegram, dan hasilnya saling sinkron.", true)}
+      <div class="panel-title" style="margin-bottom:4px;">Menunggu konfirmasi (${pending.length})</div>
+      ${pending.length === 0 ? `<div class="empty">Tidak ada pembayaran yang menunggu konfirmasi.</div>` : pending.map(card).join("")}
+      ${decided.length > 0 ? `<div class="panel-title" style="margin-top:18px;">Riwayat</div>${decided.map(card).join("")}` : ""}
+    </div>`;
+}
+bindHandlers["manual-payments"] = () => {
+  document.querySelectorAll("[data-acc-order]").forEach((btn) => btn.addEventListener("click", () => decideManualOrder(btn.dataset.accOrder, "approved")));
+  document.querySelectorAll("[data-reject-order]").forEach((btn) => btn.addEventListener("click", () => decideManualOrder(btn.dataset.rejectOrder, "rejected")));
+};
+
 
 function viewSettingsSupabase() {
   const sb = state.settings.supabase;
   const bootstrapFilled = BOOTSTRAP_SUPABASE.url && BOOTSTRAP_SUPABASE.anonKey;
   return `
     <div class="view">
-      ${sectionHead("Admin · Database Akun", "Supabase", "Satu tabel generik (kv_store) menyimpan Pengaturan situs, akun user, dan verifikasi Telegram — semuanya otomatis sama untuk semua pengunjung, bukan cuma tersimpan di browser kamu.", true)}
+      ${sectionHead("Admin · Database Akun", "Supabase", "Satu tabel generik (wm_kv_store) menyimpan Pengaturan situs, akun user, dan verifikasi Telegram — semuanya otomatis sama untuk semua pengunjung, bukan cuma tersimpan di browser kamu.", true)}
 
       <div class="panel">
         <div class="panel-title">Status sinkronisasi ke semua pengunjung</div>
@@ -2063,13 +2194,13 @@ function viewSettingsSupabase() {
       <div class="panel" id="sqlSetupPanel">
         <div class="panel-title">SQL setup</div>
         <p class="desc" style="margin-bottom:14px;">Cukup satu tabel generik untuk semuanya — jalankan sekali lewat SQL Editor di Supabase. Anon key (dipakai browser) sengaja <strong>tidak diizinkan</strong> membuat tabel sendiri (proteksi Supabase), jadi langkah ini memang harus manual sekali di awal:</p>
-        <pre class="mono" id="sqlSetupBlock" style="background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:11.5px; overflow-x:auto; white-space:pre;">create table if not exists public.${esc(sb.table || "kv_store")} (
+        <pre class="mono" id="sqlSetupBlock" style="background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:11.5px; overflow-x:auto; white-space:pre;">create table if not exists public.${esc(sb.table || "wm_kv_store")} (
   key text primary key,
   value jsonb not null,
   updated_at timestamptz not null default now()
 );
-alter table public.${esc(sb.table || "kv_store")} enable row level security;
-create policy "wm allow anon" on public.${esc(sb.table || "kv_store")}
+alter table public.${esc(sb.table || "wm_kv_store")} enable row level security;
+create policy "wm allow anon" on public.${esc(sb.table || "wm_kv_store")}
   for all using (true) with check (true);</pre>
         <div class="form-row" style="margin-top:10px;">
           <button class="btn btn-secondary" id="sqlCopyBtn">Salin SQL</button>
@@ -2119,7 +2250,7 @@ bindHandlers["settings-supabase"] = () => {
     const statusEl = document.getElementById("sbStatus");
     sb.url = document.getElementById("sbUrl").value.trim();
     sb.anonKey = document.getElementById("sbKey").value.trim();
-    sb.table = document.getElementById("sbTable").value.trim() || "kv_store";
+    sb.table = document.getElementById("sbTable").value.trim() || "wm_kv_store";
     await saveSettingsWithConfirmation("sbStatus");
     if (sb.url && sb.anonKey) {
       try {
@@ -2137,7 +2268,7 @@ bindHandlers["settings-supabase"] = () => {
     const statusEl = document.getElementById("sbStatus");
     const url = document.getElementById("sbUrl").value.trim();
     const anonKey = document.getElementById("sbKey").value.trim();
-    const table = document.getElementById("sbTable").value.trim() || "kv_store";
+    const table = document.getElementById("sbTable").value.trim() || "wm_kv_store";
     if (!url || !anonKey) { statusEl.textContent = "Isi Project URL dan Anon key dulu."; statusEl.className = "danger-text"; return; }
     statusEl.textContent = "Menguji koneksi…"; statusEl.className = "muted";
     try {
