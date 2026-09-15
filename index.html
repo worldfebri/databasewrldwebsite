@@ -1,0 +1,2172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WorldMarket Admin</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* { box-sizing: border-box; }
+:root {
+  --bg: #0B0E11; --panel: #12161C; --panel-2: #171C23; --border: #232A33;
+  --amber: #FFB020; --teal: #34D8C6; --violet: #B7A6FF; --red: #FF6B6B;
+  --text: #E7EAEE; --muted: #8A939E;
+}
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+#app { display: flex; min-height: 100vh; }
+#loading { width: 100%; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+#loading .mark { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 28px; color: var(--amber); letter-spacing: 1px; }
+
+.sidebar { width: 232px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--border); padding: 22px 16px; display: flex; flex-direction: column; gap: 18px; height: 100vh; position: sticky; top: 0; }
+.sidebar.mode-admin { border-right-color: rgba(183,166,255,0.35); }
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
+.brand-mark { width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, var(--amber), #E08E00); display: flex; align-items: center; justify-content: center; font-family: 'Sora', sans-serif; font-weight: 700; color: #1A1200; font-size: 13px; flex-shrink: 0; animation: floatLogo 3.2s ease-in-out infinite, glowPulse 3.2s ease-in-out infinite; }
+.mode-admin .brand-mark { background: linear-gradient(135deg, var(--violet), #6E58D6); color: #14102B; animation: floatLogo 3.2s ease-in-out infinite, glowPulseViolet 3.2s ease-in-out infinite; }
+@keyframes floatLogo { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-4px) rotate(-3deg); } }
+@keyframes glowPulse { 0%, 100% { box-shadow: 0 0 0 rgba(255,176,32,0); } 50% { box-shadow: 0 0 14px rgba(255,176,32,0.55); } }
+@keyframes glowPulseViolet { 0%, 100% { box-shadow: 0 0 0 rgba(183,166,255,0); } 50% { box-shadow: 0 0 14px rgba(183,166,255,0.55); } }
+.brand-title { font-family: 'Sora', sans-serif; font-weight: 600; font-size: 15px; }
+.brand-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.admin-flag { font-size: 10.5px; font-weight: 600; letter-spacing: 0.4px; color: var(--violet); background: rgba(183,166,255,0.12); border: 1px solid rgba(183,166,255,0.3); border-radius: 6px; padding: 3px 8px; display: inline-block; }
+
+.nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 10px; text-align: left; width: 100%; background: transparent; border: none; color: var(--muted); font-size: 13.5px; font-family: 'Inter', sans-serif; padding: 9px 10px; border-radius: 7px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.nav-item:hover { background: var(--panel-2); color: var(--text); }
+.nav-item.active { background: rgba(255,176,32,0.1); color: var(--amber); }
+.mode-admin .nav-item.active { background: rgba(183,166,255,0.14); color: var(--violet); }
+.nav-icon { width: 16px; text-align: center; font-size: 13px; }
+.sidebar-foot { padding: 10px 6px 0; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+.mobile-bar { display: none; }
+.main { flex: 1; padding: 34px 40px 60px; max-width: 1080px; position: relative; }
+.view { display: flex; flex-direction: column; gap: 22px; animation: fadeInUp 0.45s ease both; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes shimmerText { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+@keyframes pulseDot { 0%, 100% { box-shadow: 0 0 0 0 rgba(52,216,198,0.55); } 70% { box-shadow: 0 0 0 6px rgba(52,216,198,0); } }
+.section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.eyebrow { font-size: 12px; color: var(--amber); font-weight: 500; margin-bottom: 4px; }
+.eyebrow.violet { color: var(--violet); }
+.title { font-family: 'Sora', sans-serif; font-size: 24px; font-weight: 600; margin: 0; }
+.hero-shimmer .title {
+  background: linear-gradient(90deg, var(--text) 0%, var(--amber) 25%, var(--text) 50%, var(--amber) 75%, var(--text) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: shimmerText 4.5s linear infinite;
+}
+.desc { color: var(--muted); font-size: 13.5px; margin: 6px 0 0; max-width: 62ch; line-height: 1.5; }
+.muted { color: var(--muted); }
+
+.stat-row { display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--panel); flex-wrap: wrap; }
+.stat { flex: 1; min-width: 140px; padding: 16px 18px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.stat:last-child { border-right: none; }
+.stat-value { font-family: 'JetBrains Mono', monospace; font-size: 22px; color: var(--amber); display: flex; align-items: center; gap: 8px; }
+.live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--teal); display: inline-block; animation: pulseDot 1.8s infinite; }
+.mode-admin-stats .stat-value { color: var(--violet); }
+.stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; transition: transform 0.2s ease, border-color 0.2s ease; }
+.panel:hover { transform: translateY(-2px); border-color: rgba(255,176,32,0.3); }
+.mode-admin .panel:hover { border-color: rgba(183,166,255,0.3); }
+.panel-title { font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.kv { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; gap: 12px; }
+.kv:last-child { border-bottom: none; }
+.activity { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.activity li { display: flex; flex-direction: column; gap: 2px; font-size: 13px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.activity li:last-child { border-bottom: none; padding-bottom: 0; }
+
+.form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.input { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); padding: 9px 12px; border-radius: 7px; font-size: 13.5px; font-family: 'Inter', sans-serif; min-width: 160px; flex: 1; }
+.input:focus { outline: 2px solid var(--amber); outline-offset: 1px; border-color: transparent; }
+.input-sm { min-width: 80px; flex: none; width: 90px; }
+.inline-input { display: flex; align-items: center; gap: 8px; }
+
+.btn { border: none; border-radius: 7px; padding: 9px 16px; font-size: 13.5px; cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 500; white-space: nowrap; }
+.btn-primary { background: var(--amber); color: #1A1200; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(255,176,32,0.3); }
+.btn-primary:hover { background: #FFC24D; }
+.btn-violet { background: var(--violet); color: #14102B; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.btn-violet:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(183,166,255,0.3); }
+.btn-violet:hover { background: #C9BDFF; }
+.btn-secondary { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); }
+.btn-ghost { background: transparent; color: var(--muted); padding: 6px 10px; }
+.btn-ghost:hover { color: var(--text); }
+.btn-danger:hover { color: var(--red); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.row-actions { display: flex; gap: 4px; }
+.price-tag { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--teal); padding: 9px 12px; border: 1px dashed var(--border); border-radius: 7px; }
+
+table.table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.table th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+table.table td { padding: 10px; border-bottom: 1px solid var(--border); }
+table.table tr:last-child td { border-bottom: none; }
+.mono { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+.danger-text { color: var(--red); }
+.ok-text { color: var(--teal); }
+.empty { color: var(--muted); font-size: 13.5px; padding: 30px 0; text-align: center; border: 1px dashed var(--border); border-radius: 10px; }
+
+.pill { font-size: 11.5px; padding: 3px 9px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+.pill-on { background: rgba(52,216,198,0.14); color: var(--teal); }
+.pill-off { background: rgba(138,147,158,0.14); color: var(--muted); }
+.pill-neutral { background: rgba(255,176,32,0.12); color: var(--amber); }
+.pill-danger { background: rgba(255,107,107,0.14); color: var(--red); }
+
+.role { font-size: 11.5px; padding: 3px 9px; border-radius: 20px; text-transform: lowercase; }
+.role-developer { background: rgba(255,176,32,0.16); color: var(--amber); }
+.role-staff { background: rgba(52,216,198,0.16); color: var(--teal); }
+.role-partner { background: rgba(158,140,255,0.16); color: #B7A6FF; }
+.role-reseller { background: rgba(138,147,158,0.16); color: var(--text); }
+.role-buyer { background: rgba(138,147,158,0.1); color: var(--muted); }
+
+.toggle { width: 38px; height: 22px; border-radius: 20px; background: var(--panel-2); border: 1px solid var(--border); position: relative; cursor: pointer; flex-shrink: 0; }
+.toggle-knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: left 0.15s, background 0.15s; }
+.toggle.on { background: rgba(183,166,255,0.2); border-color: var(--violet); }
+.toggle.on .toggle-knob { left: 18px; background: var(--violet); }
+
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--panel-2); border: 1px solid var(--border); padding: 5px 6px 5px 12px; border-radius: 20px; font-size: 12.5px; }
+.chip button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; }
+.chip button:hover { color: var(--red); }
+
+.text-list { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.text-list li { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 13px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
+.field:last-child { margin-bottom: 0; }
+
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--border); color: var(--text); padding: 10px 18px; border-radius: 8px; font-size: 13.5px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.2s; max-width: 80vw; }
+.toast.show { opacity: 1; }
+
+.admin-corner { position: fixed; top: 18px; right: 24px; z-index: 45; display: flex; align-items: center; gap: 8px; }
+.admin-badge { font-size: 12px; color: var(--violet); font-family: 'JetBrains Mono', monospace; background: var(--panel-2); border: 1px solid var(--border); padding: 7px 12px; border-radius: 20px; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(4,5,7,0.72); display: flex; align-items: center; justify-content: center; z-index: 60; padding: 20px; }
+.modal-box { width: 100%; max-width: 340px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+.modal-title { font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+.modal-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 18px; line-height: 1.5; }
+.modal-error { font-size: 12.5px; color: var(--red); margin: -8px 0 12px; min-height: 15px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+.modal-actions .btn { flex: 1; }
+.lock-note { font-size: 12px; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; padding: 10px 12px; }
+.promo-banner { font-size: 12.5px; color: var(--amber); background: rgba(255,176,32,0.08); border: 1px dashed rgba(255,176,32,0.4); border-radius: 8px; padding: 10px 14px; }
+
+.payment-down-overlay {
+  position: fixed; inset: 0; background: rgba(4,5,7,0.97); z-index: 100;
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+  text-align: center; padding: 40px 24px;
+}
+.payment-down-icon { font-size: 52px; margin-bottom: 18px; }
+.payment-down-title { font-family: 'Sora', sans-serif; font-size: 26px; font-weight: 700; color: var(--red); margin-bottom: 14px; }
+.payment-down-desc { color: var(--muted); font-size: 15px; max-width: 460px; line-height: 1.65; margin-bottom: 26px; }
+
+.chat-box { display: flex; flex-direction: column; gap: 12px; height: 440px; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+.chat-msg { max-width: 78%; padding: 10px 13px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; }
+.chat-msg.user { align-self: flex-end; background: rgba(255,176,32,0.14); color: var(--text); border-bottom-right-radius: 3px; }
+.chat-msg.ai { align-self: flex-start; background: var(--panel-2); border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+.chat-msg.notice { align-self: center; color: var(--muted); font-size: 12px; font-style: italic; background: none; }
+.chat-input-row { display: flex; gap: 10px; }
+
+@media (max-width: 860px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .stat-row { flex-wrap: wrap; }
+  .sidebar { position: fixed; left: -260px; top: 0; z-index: 40; transition: left 0.2s; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+  .sidebar.open { left: 0; }
+  .mobile-bar { display: flex; align-items: center; gap: 12px; position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--border); padding: 14px 16px; z-index: 30; width: 100%; }
+  .burger { background: none; border: none; color: var(--text); font-size: 18px; cursor: pointer; }
+  .main { padding: 20px 16px 50px; width: 100%; }
+  #app { flex-direction: column; }
+  .admin-corner { top: auto; bottom: 24px; right: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="mark">WM</div><div class="muted">Menyiapkan Admin Console…</div></div>
+
+<div id="app" style="display:none;">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark" id="brandMark">WM</span>
+      <div>
+        <div class="brand-title" id="brandTitle">WorldMarket</div>
+        <div class="brand-sub" id="brandSub">Toko Resmi</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidebar-foot" id="sidebarFoot"></div>
+  </aside>
+  <div class="mobile-bar">
+    <button class="burger" id="burgerBtn">☰</button>
+    <div class="brand-title" style="font-size:15px;" id="brandTitleMobile">WorldMarket Panel</div>
+  </div>
+  <main class="main" id="main"></main>
+</div>
+
+<div class="admin-corner" id="adminCorner" style="display:none;"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// WorldMarket Panel — 100% website. Berdiri sendiri, tidak terhubung ke bot
+// Telegram atau sistem chat apa pun. Semua data & konfigurasi (termasuk
+// backup/migrasi ke GitHub) dikendalikan penuh dari website ini.
+//
+// Layout:
+//  - Situs publik : Ringkasan, Apikey Shop, Quota Shop, AI World (chat AI biasa)
+//  - Admin console: hanya muncul setelah login (tombol di kanan atas). Berisi
+//    Owner DB, Role DB, Warn System, Promo Reminder, Konfigurasi AI World,
+//    Migrasi Database, dan Pengaturan (termasuk backup ke GitHub).
+//
+// Data operasional (owner/apikey/kuota/warn) disimpan lewat localStorage
+// bawaan browser sebagai cache, dan disinkronkan ke GitHub kalau
+// dikonfigurasi. SEMUA Pengaturan (termasuk konfigurasi GitHub, Payment
+// Gateway, Groq, dan Supabase itu sendiri) disimpan di Supabase supaya
+// begitu admin mengubah sesuatu di halaman admin, SEMUA pengunjung otomatis
+// dapat versi terbaru saat membuka website — bukan cuma tersimpan di
+// browser admin sendiri.
+//
+// Supaya pengunjung baru (browser kosong, belum pernah menyimpan apa pun)
+// tetap bisa terhubung ke Supabase itu, dua nilai di bawah ini WAJIB diisi
+// langsung di source code (sekali saja, seperti config.js pada bot
+// Telegram), lalu file ini di-upload ulang ke hosting:
+const APP_MODE = "admin"; // "store" = public shop, "admin" = separate admin website
+const BOOTSTRAP_SUPABASE = {
+  url: "",      // isi dengan Project URL Supabase kamu, contoh: "https://xxxx.supabase.co"
+  anonKey: "",  // isi dengan Anon public key Supabase kamu
+};
+// Setelah dua nilai ini diisi & file di-upload ulang, SEMUA pengaturan lain
+// (repo GitHub, token, API key payment, API key AI, harga toko, dst) bisa
+// diatur sepenuhnya dari halaman admin dan otomatis tersinkron ke semua
+// pengunjung lewat Supabase — tidak perlu edit source code lagi setelah ini.
+// ---------------------------------------------------------------------------
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const rupiah = (n) => "Rp" + Number(n || 0).toLocaleString("id-ID");
+const now = () => Date.now();
+const fmtDate = (ts) => ts ? new Date(ts).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const b64EncodeUnicode = (str) => btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode("0x" + p1)));
+const b64DecodeUnicode = (str) => decodeURIComponent(atob(str).split("").map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join(""));
+
+const ROLE_LEVELS = ["developer", "staff", "partner", "reseller", "buyer"];
+const DEFAULT_ADMIN = { username: "worldadmin", password: "WM-Admin#2026" };
+
+const DEFAULT_SETTINGS = {
+  general: { siteName: "WorldMarket", notifyWebhookUrl: "", sessionTimeoutMinutes: 30 },
+  apikeyShop: { enabled: true, pricePerUnit: 5, options: [1000] },
+  quotaShop: { enabled: true, priceTemp: 2000, pricePermanent: 4000, tempDurationDays: 20, tempOptions: [1, 3, 5, 10], permanentOptions: [1, 3, 5, 10] },
+  warnSystem: { maxWarn: 3 },
+  promoReminder: {
+    enabled: true, intervalMinutes: 15,
+    apikeyTexts: ["Apikey lu masih jatah gratisan? Sultan mah stok apikey banyak, gaskeun beli.", "Kehabisan apikey di tengah orderan itu kayak kehabisan bensin di jalan tol."],
+    quotaTexts: ["Reseller sejati ga pernah kehabisan kuota addowner, kapan nyusul?", "Kuota addowner itu nyawa bisnis, habis ya bisnis mati suri. Isi ulang gih."],
+  },
+  aiWorld: { enabled: true, requireTrigger: true, triggerKeywords: ["world", "worldmd", "world md", "ai world"], cooldownSeconds: 12 },
+  groq: { apiKey: "", model: "openai/gpt-oss-120b" },
+  github: { repo: "", branch: "main", token: "", path: "worldmarket-database.json" },
+  githubRoles: { repo: "", branch: "main", token: "", path: "database/additional/role_db.json" },
+  supabase: { url: "", anonKey: "", table: "kv_store" },
+  payment: { apiKey: "", addMdrToCustomer: false },
+};
+
+const NAV_PUBLIC = [
+  { id: "p-dashboard", label: "Ringkasan", icon: "◈" },
+  { id: "apikeys", label: "Apikey Shop", icon: "◆" },
+  { id: "quotas", label: "Quota Shop", icon: "▣" },
+  { id: "aiworld", label: "AI World", icon: "∴" },
+  { id: "p-orders", label: "Pesanan Saya", icon: "🧾" },
+];
+const NAV_ADMIN = [
+  { id: "a-dashboard", label: "Ringkasan Admin", icon: "◈" },
+  { id: "owners", label: "Owner DB", icon: "☎" },
+  { id: "roles", label: "Role DB", icon: "☰" },
+  { id: "a-apikeys", label: "Apikey Shop", icon: "◆" },
+  { id: "a-quotas", label: "Quota Shop", icon: "▣" },
+  { id: "warns", label: "Warn System", icon: "!" },
+  { id: "promo", label: "Promo Reminder", icon: "»" },
+  { id: "aiworld-config", label: "Konfigurasi AI World", icon: "∴" },
+  { id: "migration", label: "Migrasi Database", icon: "⇄" },
+  { id: "settings-general", label: "Pengaturan Umum", icon: "⚙" },
+  { id: "settings-github", label: "GitHub", icon: "⌥" },
+  { id: "settings-payment", label: "Payment Gateway", icon: "◈" },
+  { id: "settings-supabase", label: "Database Akun", icon: "⌗" },
+  { id: "settings-accounts", label: "Akun Admin & User", icon: "☺" },
+];
+
+let state = {
+  currentView: "public", tab: "p-dashboard", isAdmin: false,
+  owners: [], roles: [], apikeys: [], quotas: [], warns: [],
+  settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
+  admin: { ...DEFAULT_ADMIN },
+  users: [], currentUser: null,
+  chat: { messages: [], lastSentAt: 0, sending: false },
+  migration: { fetchedText: null, fetchedFrom: null },
+  inactivityTimer: null,
+};
+
+// Akun user biasa (pengunjung/pembeli) — 100% terpisah dari akun admin.
+// Kalau Supabase dikonfigurasi (Pengaturan → Database Akun), akun disimpan
+// di sana. Kalau belum, fallback otomatis ke penyimpanan lokal panel ini.
+
+async function hashPassword(pw) {
+  const enc = new TextEncoder().encode(pw);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// ---------------------------------------------------------------------------
+// Supabase lewat REST langsung (tanpa library supabase-js) — satu tabel
+// generik "kv_store" (key, value jsonb) dipakai untuk SEMUA data bersama:
+// pengaturan situs, akun user, dan permintaan verifikasi Telegram. Setiap
+// bagian data punya "key" tetap sendiri di dalam tabel yang sama.
+// ---------------------------------------------------------------------------
+
+function deepMerge(base, override) {
+  if (!override || typeof override !== "object" || Array.isArray(override)) return override ?? base;
+  const out = Array.isArray(base) ? [...base] : { ...base };
+  for (const [k, v] of Object.entries(override)) {
+    if (v && typeof v === "object" && !Array.isArray(v) && base?.[k] && typeof base[k] === "object" && !Array.isArray(base[k])) {
+      out[k] = deepMerge(base[k], v);
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+function sbConfig() {
+  const local = state.settings.supabase;
+  return local && local.url && local.anonKey ? local : BOOTSTRAP_SUPABASE;
+}
+function supaHeaders(extra) {
+  const cfg = sbConfig();
+  return Object.assign({ apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}`, "Content-Type": "application/json" }, extra || {});
+}
+function kvTable() { return state.settings.supabase?.table || "kv_store"; }
+async function kvGet(key) {
+  const cfg = sbConfig();
+  if (!cfg.url || !cfg.anonKey) return null;
+  try {
+    const res = await fetch(`${cfg.url}/rest/v1/${kvTable()}?key=eq.${encodeURIComponent(key)}&select=value`, { headers: supaHeaders() });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows.length ? rows[0].value : null;
+  } catch (e) { console.warn(`kvGet(${key}) gagal:`, e.message); return null; }
+}
+async function kvSet(key, value) {
+  const cfg = sbConfig();
+  if (!cfg.url || !cfg.anonKey) return false;
+  try {
+    const res = await fetch(`${cfg.url}/rest/v1/${kvTable()}`, {
+      method: "POST",
+      headers: supaHeaders({ Prefer: "resolution=merge-duplicates,return=minimal" }),
+      body: JSON.stringify({ key, value, updated_at: new Date().toISOString() }),
+    });
+    return res.ok;
+  } catch (e) { console.warn(`kvSet(${key}) gagal:`, e.message); return false; }
+}
+
+// --- Sinkronisasi Pengaturan (semua yang diatur admin: GitHub, Payment,
+// Groq, harga toko, dll) — supaya otomatis sama untuk semua pengunjung. ---
+async function pushSettingsToSupabase() {
+  return await kvSet("wm:settings", state.settings);
+}
+
+// Simpan + pastikan write Supabase benar-benar berhasil.
+async function saveSettingsWithConfirmation(statusElId) {
+  const localOk = await _rawSaveKey("wm:settings", state.settings);
+  const synced = !!(sbConfig().url && sbConfig().anonKey);
+  let remoteOk = false;
+  if (synced) {
+    remoteOk = await pushSettingsToSupabase();
+    if (remoteOk) {
+      const verify = await pullSettingsFromSupabase();
+      remoteOk = !!verify;
+    }
+  }
+  const statusEl = document.getElementById(statusElId);
+  if (statusEl) {
+    if (remoteOk) {
+      statusEl.textContent = "✓ Tersimpan & terverifikasi di Supabase. Semua device akan membaca konfigurasi terbaru.";
+      statusEl.className = "ok-text";
+    } else if (synced) {
+      statusEl.textContent = "⚠️ Tersimpan lokal, tetapi Supabase gagal menerima/menyimpan perubahan. Cek URL, anon key, tabel, dan RLS.";
+      statusEl.className = "danger-text";
+    } else {
+      statusEl.textContent = localOk
+        ? "✓ Tersimpan di browser ini saja. Hubungkan Supabase agar perubahan berlaku untuk semua device."
+        : "Gagal menyimpan konfigurasi.";
+      statusEl.className = localOk ? "danger-text" : "danger-text";
+    }
+  }
+  notify(remoteOk ? "Pengaturan tersimpan di Supabase." : (synced ? "Supabase gagal menyimpan pengaturan." : "Pengaturan tersimpan lokal."));
+  return remoteOk;
+}
+async function pullSettingsFromSupabase() { return await kvGet("wm_settings"); }
+async function pullSettingsFromSupabase() { return await kvGet("wm_settings"); }
+
+// --- Akun user (daftar/masuk/profil) — disimpan sebagai satu array di
+// balik key "wm_users". Fallback ke state.users lokal kalau Supabase belum
+// dikonfigurasi sama sekali. ---
+async function fetchUsersArray() {
+  const remote = await kvGet("wm_users");
+  return Array.isArray(remote) ? remote : null;
+}
+async function usersFindByUsername(username) {
+  const cfg = sbConfig();
+  const list = cfg.url && cfg.anonKey ? (await fetchUsersArray()) ?? state.users : state.users;
+  return list.find((u) => u.username.toLowerCase() === username.toLowerCase()) || null;
+}
+async function usersVerifyLogin(username, password) {
+  const cfg = sbConfig();
+  if (cfg.url && cfg.anonKey) {
+    const list = (await fetchUsersArray()) ?? [];
+    const hash = await hashPassword(password);
+    const row = list.find((u) => u.username.toLowerCase() === username.toLowerCase() && u.passwordHash === hash);
+    return row ? { id: row.id, username: row.username, telegramId: row.telegramId || "", telegramUsername: row.telegramUsername || "", createdAt: row.createdAt } : null;
+  }
+  const local = state.users.find((u) => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+  return local || null;
+}
+async function usersCreate(username, password) {
+  const cfg = sbConfig();
+  if (cfg.url && cfg.anonKey) {
+    const list = (await fetchUsersArray()) ?? [];
+    if (list.some((u) => u.username.toLowerCase() === username.toLowerCase())) throw new Error("Username sudah dipakai, pilih yang lain.");
+    const user = { id: uid(), username, passwordHash: await hashPassword(password), telegramId: "", telegramUsername: "", createdAt: now() };
+    list.push(user);
+    const ok = await kvSet("wm_users", list);
+    if (!ok) throw new Error("Gagal menyimpan akun ke Supabase.");
+    return { id: user.id, username: user.username, telegramId: "", telegramUsername: "", createdAt: user.createdAt };
+  }
+  if (state.users.some((u) => u.username.toLowerCase() === username.toLowerCase())) throw new Error("Username sudah dipakai, pilih yang lain.");
+  const user = { id: uid(), username, password, telegramId: "", telegramUsername: "", createdAt: now() };
+  state.users.push(user);
+  await saveKey("wm:users", state.users);
+  return user;
+}
+async function usersUpdate(id, patch) {
+  const cfg = sbConfig();
+  if (cfg.url && cfg.anonKey) {
+    const list = (await fetchUsersArray()) ?? [];
+    const u = list.find((x) => x.id === id);
+    if (!u) throw new Error("Akun tidak ditemukan.");
+    if (patch.username) u.username = patch.username;
+    if (patch.password) u.passwordHash = await hashPassword(patch.password);
+    if (patch.telegramId !== undefined) u.telegramId = patch.telegramId;
+    if (patch.telegramUsername !== undefined) u.telegramUsername = patch.telegramUsername;
+    const ok = await kvSet("wm_users", list);
+    if (!ok) throw new Error("Gagal menyimpan perubahan ke Supabase.");
+    return true;
+  }
+  const u = state.users.find((x) => x.id === id);
+  if (!u) throw new Error("Akun tidak ditemukan.");
+  if (patch.username) u.username = patch.username;
+  if (patch.password) u.password = patch.password;
+  if (patch.telegramId !== undefined) u.telegramId = patch.telegramId;
+  if (patch.telegramUsername !== undefined) u.telegramUsername = patch.telegramUsername;
+  await saveKey("wm:users", state.users);
+  return true;
+}
+async function usersDelete(id) {
+  const cfg = sbConfig();
+  if (cfg.url && cfg.anonKey) {
+    const list = (await fetchUsersArray()) ?? [];
+    const filtered = list.filter((u) => u.id !== id);
+    const ok = await kvSet("wm_users", filtered);
+    if (!ok) throw new Error("Gagal menghapus akun di Supabase.");
+    return true;
+  }
+  state.users = state.users.filter((u) => u.id !== id);
+  await saveKey("wm:users", state.users);
+  return true;
+}
+async function usersListAll() {
+  const cfg = sbConfig();
+  if (cfg.url && cfg.anonKey) {
+    const list = (await fetchUsersArray()) ?? [];
+    return list.map((u) => ({ id: u.id, username: u.username, telegramId: u.telegramId || "", telegramUsername: u.telegramUsername || "", createdAt: u.createdAt }));
+  }
+  return state.users;
+}
+
+// ---------------------------------------------------------------------------
+// Verifikasi Telegram — supaya penautan ID/Username tidak bisa dipalsukan.
+// Alurnya: website bikin kode acak & simpan permintaan "pending" di dalam
+// array di balik key "wm_verifications", lalu orangnya kirim
+// "/verifikasi <kode>" ke bot Telegram (project terpisah, lihat folder
+// bot/). Bot yang mengisi telegramId & mengubah status jadi "verified" di
+// array yang sama. Website tinggal polling key itu.
+// ---------------------------------------------------------------------------
+
+async function createVerificationRequest(accountId) {
+  const cfg = sbConfig();
+  if (!cfg.url || !cfg.anonKey) throw new Error("Supabase belum dikonfigurasi. Verifikasi Telegram belum bisa dipakai.");
+  const list = (await kvGet("wm_verifications")) || [];
+  const request = { id: uid(), accountId, code: String(Math.floor(100000 + Math.random() * 900000)), status: "pending", createdAt: now(), expiresAt: now() + 10 * 60000 };
+  list.push(request);
+  const ok = await kvSet("wm_verifications", list);
+  if (!ok) throw new Error("Gagal membuat kode verifikasi.");
+  return { id: request.id, code: request.code };
+}
+async function checkVerificationStatus(requestId) {
+  const list = (await kvGet("wm_verifications")) || [];
+  return list.find((r) => r.id === requestId) || null;
+}
+
+async function loadKey(key, fallback) {
+  try { const raw = localStorage.getItem(key); return raw !== null ? JSON.parse(raw) : fallback; }
+  catch { return fallback; }
+}
+async function _rawSaveKey(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); }
+  catch (e) { console.error("storage set failed", key, e); }
+}
+const SHOP_KEYS = ["wm:owners", "wm:roles", "wm:apikeys", "wm:quotas", "wm:warns"];
+function pushShopToKv() {
+  kvSet("wm_shop", { owners: state.owners, roles: state.roles, apikeys: state.apikeys, quotas: state.quotas, warns: state.warns });
+}
+
+// Mengikuti pola script bot Telegram asli: DUA database GitHub terpisah —
+// satu untuk data utama (owner/apikey/kuota/warn/settings), satu lagi
+// KHUSUS untuk Role DB. Auto-push ke masing-masing repo begitu ada
+// perubahan, kalau repo+token-nya sudah diisi (di luar sinkron Supabase
+// yang sudah ada, sebagai lapisan tambahan mengikuti arsitektur bot lama).
+let _mainGhTimer = null, _rolesGhTimer = null;
+function scheduleMainGithubPush() {
+  const gh = state.settings.github;
+  if (!gh || !gh.repo || !gh.token) return;
+  clearTimeout(_mainGhTimer);
+  _mainGhTimer = setTimeout(async () => {
+    try {
+      let sha; try { const existing = await ghGetFile(gh.repo, gh.branch, gh.token, gh.path); if (existing) sha = existing.sha; } catch {}
+      await ghPutFile(gh.repo, gh.branch, gh.token, gh.path, buildMainDatabaseExport(), sha, "Auto-update database utama dari WorldMarket Panel");
+    } catch (e) { console.warn("Auto-push ke GitHub (utama) gagal:", e.message); }
+  }, 2500);
+}
+function scheduleRolesGithubPush() {
+  const gh = state.settings.githubRoles;
+  if (!gh || !gh.repo || !gh.token) return;
+  clearTimeout(_rolesGhTimer);
+  _rolesGhTimer = setTimeout(async () => {
+    try {
+      let sha; try { const existing = await ghGetFile(gh.repo, gh.branch, gh.token, gh.path); if (existing) sha = existing.sha; } catch {}
+      await ghPutFile(gh.repo, gh.branch, gh.token, gh.path, buildRolesExport(), sha, "Auto-update role database dari WorldMarket Panel");
+    } catch (e) { console.warn("Auto-push ke GitHub (role) gagal:", e.message); }
+  }, 2500);
+}
+const MAIN_DB_KEYS = ["wm:owners", "wm:apikeys", "wm:quotas", "wm:warns", "wm:settings"];
+async function saveKey(key, value) {
+  await _rawSaveKey(key, value);
+  if (SHOP_KEYS.includes(key)) await pushShopToKv();
+  if (key === "wm:settings") await pushSettingsToSupabase();
+  if (MAIN_DB_KEYS.includes(key)) scheduleMainGithubPush();
+  if (key === "wm:roles") scheduleRolesGithubPush();
+  return true;
+}
+
+function animateCountUps() {
+  document.querySelectorAll(".stat-value[data-countup]").forEach((el) => {
+    const target = Number(el.dataset.countup) || 0;
+    const duration = 650;
+    const startTime = performance.now();
+    function tick(t) {
+      const progress = Math.min(1, (t - startTime) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(target * eased).toLocaleString("id-ID");
+      if (progress < 1) requestAnimationFrame(tick);
+      else el.textContent = target.toLocaleString("id-ID");
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+function notify(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(notify._t);
+  notify._t = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+async function boot() {
+  const [o, r, k, q, w, s, a, u] = await Promise.all([
+    loadKey("wm:owners", []), loadKey("wm:roles", []), loadKey("wm:apikeys", []),
+    loadKey("wm:quotas", []), loadKey("wm:warns", []),
+    loadKey("wm:settings", DEFAULT_SETTINGS), loadKey("wm:admin", null),
+    loadKey("wm:users", []),
+  ]);
+  state.owners = o; state.roles = r; state.apikeys = k; state.quotas = q; state.warns = w;
+  state.settings = deepMerge(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), s || {});
+  state.users = u;
+
+  if (a) state.admin = a;
+  else {
+    // Migrasi dari sistem multi-akun percobaan sebelumnya, kalau ada.
+    const legacyAccounts = await loadKey("wm:accounts", []);
+    state.admin = legacyAccounts.length > 0 ? { username: legacyAccounts[0].username, password: legacyAccounts[0].password } : { ...DEFAULT_ADMIN };
+    await saveKey("wm:admin", state.admin);
+  }
+
+  // Tarik Pengaturan dari Supabase dulu (kalau ada) — ini yang membuat
+  // konfigurasi admin (GitHub, Payment, Groq, harga toko, dst) otomatis
+  // sama untuk SEMUA pengunjung, bukan cuma tersimpan di browser admin.
+  try {
+    const remoteSettings = await pullSettingsFromSupabase();
+    if (remoteSettings) {
+      state.settings = deepMerge(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), remoteSettings || {});
+      await _rawSaveKey("wm:settings", state.settings);
+    }
+  } catch (e) { console.warn("Gagal ambil pengaturan dari Supabase, pakai cache lokal:", e.message); }
+
+  // Tarik data toko (owner/role/apikey/kuota/warn) dari Supabase juga —
+  // sama seperti Pengaturan, ini yang bikin SEMUA pengunjung otomatis lihat
+  // data yang sama, bukan cuma cache lokal browser masing-masing.
+  try {
+    const shop = await kvGet("wm_shop");
+    if (shop) {
+      if (shop.owners) state.owners = shop.owners;
+      if (shop.roles) state.roles = shop.roles;
+      if (shop.apikeys) state.apikeys = shop.apikeys;
+      if (shop.quotas) state.quotas = shop.quotas;
+      if (shop.warns) state.warns = shop.warns;
+      await Promise.all([
+        _rawSaveKey("wm:owners", state.owners), _rawSaveKey("wm:roles", state.roles), _rawSaveKey("wm:apikeys", state.apikeys),
+        _rawSaveKey("wm:quotas", state.quotas), _rawSaveKey("wm:warns", state.warns),
+      ]);
+    }
+  } catch (e) { console.warn("Gagal ambil data toko dari Supabase, pakai cache lokal:", e.message); }
+
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+  document.getElementById("adminCorner").style.display = "flex";
+
+  renderAll();
+  document.getElementById("burgerBtn").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
+  document.addEventListener("click", resetInactivityTimer);
+  document.addEventListener("keydown", resetInactivityTimer);
+
+  // Sinkronisasi ringan: Store yang sedang terbuka akan mengambil konfigurasi terbaru
+  // dari Supabase setelah admin menyimpan perubahan di situs admin terpisah.
+  if (APP_MODE === "store") {
+    setInterval(async () => {
+      try {
+        const remoteSettings = await pullSettingsFromSupabase();
+        if (remoteSettings) {
+          state.settings = deepMerge(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), remoteSettings);
+          await _rawSaveKey("wm:settings", state.settings);
+          if (state.tab === "aiworld") render();
+        }
+      } catch (e) {
+        console.warn("Background settings sync gagal:", e.message);
+      }
+    }, 30000);
+  }
+
+  if (APP_MODE === "admin") {
+    state.currentView = "admin";
+    state.tab = "a-dashboard";
+    renderAll();
+    openLoginModal();
+  } else if (state.currentView === "public" && !state.currentUser) {
+    openUserAuthModal("login");
+  }
+}
+
+function resetInactivityTimer() {
+  if (!state.isAdmin) return;
+  clearTimeout(state.inactivityTimer);
+  const minutes = Number(state.settings.general.sessionTimeoutMinutes) || 30;
+  state.inactivityTimer = setTimeout(() => {
+    if (!state.isAdmin) return;
+    state.isAdmin = false; state.currentView = "public"; state.tab = "p-dashboard";
+    renderAll();
+    notify("Sesi admin berakhir karena tidak ada aktivitas.");
+  }, minutes * 60000);
+}
+
+function renderAll() { renderSidebar(); renderAdminCorner(); render(); }
+
+function renderSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const nav = document.getElementById("nav");
+  const isAdminView = state.currentView === "admin";
+  sidebar.classList.toggle("mode-admin", isAdminView);
+  const siteName = state.settings.general.siteName || "WorldMarket";
+  document.getElementById("brandTitle").textContent = siteName;
+  document.getElementById("brandTitleMobile").textContent = siteName + " Panel";
+  document.getElementById("brandSub").textContent = isAdminView ? "Admin Console" : "Toko Resmi";
+  document.getElementById("sidebarFoot").innerHTML = isAdminView
+    ? `<span class="admin-flag">MODE ADMIN</span><br/><br/>Perubahan di sini berlaku untuk semua pengunjung situs.`
+    : "Situs berdiri sendiri, semua data dikelola dari website ini.";
+
+  const items = APP_MODE === "admin" ? NAV_ADMIN : NAV_PUBLIC;
+  nav.innerHTML = items.map((n) => `<button class="nav-item ${state.tab === n.id ? "active" : ""}" data-tab="${n.id}"><span class="nav-icon">${n.icon}</span>${esc(n.label)}</button>`).join("");
+  nav.querySelectorAll(".nav-item").forEach((btn) => {
+    btn.addEventListener("click", () => { state.tab = btn.dataset.tab; document.getElementById("sidebar").classList.remove("open"); renderSidebar(); render(); });
+  });
+}
+
+function renderAdminCorner() {
+  const el = document.getElementById("adminCorner");
+  let html = "";
+
+  if (APP_MODE === "store") {
+    if (state.currentUser) {
+      html = `<button class="btn btn-secondary" id="profileBtn">👤 ${esc(state.currentUser.username)}</button>`;
+    } else {
+      html = `<button class="btn btn-secondary" id="userAuthBtn">Masuk / Daftar</button>`;
+    }
+  } else {
+    if (state.isAdmin) {
+      html = `
+        <span class="admin-badge">Admin: ${esc(state.admin.username)}</span>
+        <button class="btn btn-secondary" id="logoutBtn">Logout</button>`;
+    }
+  }
+
+  el.innerHTML = html;
+
+  if (APP_MODE === "store") {
+    if (state.currentUser) {
+      document.getElementById("profileBtn").addEventListener("click", () => openUserProfileModal());
+    } else {
+      document.getElementById("userAuthBtn").addEventListener("click", () => openUserAuthModal("login"));
+    }
+  } else if (state.isAdmin) {
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      state.isAdmin = false;
+      renderAdminCorner();
+      render();
+      notify("Keluar dari panel admin.");
+      setTimeout(() => openLoginModal(), 100);
+    });
+  }
+}
+function openLoginModal() {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay"; overlay.id = "loginOverlay";
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <h2 class="modal-title">Login Admin</h2>
+      <p class="modal-sub">Halaman khusus admin hanya terbuka setelah login berhasil.</p>
+      <div class="field"><span>Username</span><input class="input" id="loginUser" autocomplete="username" /></div>
+      <div class="field"><span>Password</span><input class="input" id="loginPass" type="password" autocomplete="current-password" /></div>
+      <div class="modal-error" id="loginError"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="loginCancel">Batal</button>
+        <button class="btn btn-violet" id="loginSubmit">Masuk</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  document.getElementById("loginCancel").addEventListener("click", close);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+  const submit = () => {
+    const u = document.getElementById("loginUser").value.trim();
+    const p = document.getElementById("loginPass").value;
+    if (u === state.admin.username && p === state.admin.password) {
+      state.isAdmin = true; state.currentView = "admin"; state.tab = "a-dashboard";
+      close(); renderAll(); resetInactivityTimer();
+      notify("Berhasil masuk sebagai admin.");
+    } else { document.getElementById("loginError").textContent = "Username atau password salah."; }
+  };
+  document.getElementById("loginSubmit").addEventListener("click", submit);
+  overlay.querySelectorAll("input").forEach((inp) => inp.addEventListener("keydown", (e) => e.key === "Enter" && submit()));
+  document.getElementById("loginUser").focus();
+}
+
+// ---------------------------------------------------------------------------
+// Akun User biasa (pengunjung/pembeli) — daftar & masuk, terpisah dari admin
+// ---------------------------------------------------------------------------
+
+function openUserAuthModal(initialTab) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay"; overlay.id = "userAuthOverlay";
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="form-row" style="margin-bottom:16px;">
+        <button class="btn btn-secondary" id="userTabLogin" style="flex:1;">Masuk</button>
+        <button class="btn btn-secondary" id="userTabRegister" style="flex:1;">Daftar</button>
+      </div>
+      <div id="userAuthFormArea"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+  const area = overlay.querySelector("#userAuthFormArea");
+  const tabLogin = overlay.querySelector("#userTabLogin");
+  const tabRegister = overlay.querySelector("#userTabRegister");
+  const setActiveTab = (tab) => {
+    tabLogin.className = "btn " + (tab === "login" ? "btn-primary" : "btn-secondary");
+    tabRegister.className = "btn " + (tab === "register" ? "btn-primary" : "btn-secondary");
+    area.innerHTML = tab === "login" ? userLoginFormHtml() : userRegisterFormHtml();
+    if (tab === "login") bindUserLoginForm(overlay); else bindUserRegisterForm(overlay);
+  };
+  tabLogin.addEventListener("click", () => setActiveTab("login"));
+  tabRegister.addEventListener("click", () => setActiveTab("register"));
+  setActiveTab(initialTab === "register" ? "register" : "login");
+}
+
+function userLoginFormHtml() {
+  return `
+    <h2 class="modal-title">Masuk</h2>
+    <p class="modal-sub">Masuk ke akun kamu untuk belanja lebih gampang.</p>
+    <div class="field"><span>Username</span><input class="input" id="uLoginUser" autocomplete="username" /></div>
+    <div class="field"><span>Password</span><input class="input" id="uLoginPass" type="password" autocomplete="current-password" /></div>
+    <div class="modal-error" id="uLoginError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="uLoginCancel">Batal</button>
+      <button class="btn btn-primary" id="uLoginSubmit">Masuk</button>
+    </div>`;
+}
+function bindUserLoginForm(overlay) {
+  const close = () => overlay.remove();
+  overlay.querySelector("#uLoginCancel").addEventListener("click", close);
+  const submit = async () => {
+    const u = overlay.querySelector("#uLoginUser").value.trim();
+    const p = overlay.querySelector("#uLoginPass").value;
+    if (!u || !p) { overlay.querySelector("#uLoginError").textContent = "Isi username dan password."; return; }
+    const user = await usersVerifyLogin(u, p);
+    if (user) {
+      state.currentUser = user; close(); renderAdminCorner(); render();
+      notify(`Selamat datang kembali, ${user.username}.`);
+    } else { overlay.querySelector("#uLoginError").textContent = "Username atau password salah."; }
+  };
+  overlay.querySelector("#uLoginSubmit").addEventListener("click", submit);
+  overlay.querySelectorAll("#userAuthFormArea input").forEach((inp) => inp.addEventListener("keydown", (e) => e.key === "Enter" && submit()));
+  overlay.querySelector("#uLoginUser").focus();
+}
+function userRegisterFormHtml() {
+  return `
+    <h2 class="modal-title">Daftar Akun</h2>
+    <p class="modal-sub">Buat akun untuk memudahkan belanja apikey & kuota di sini.</p>
+    <div class="field"><span>Username</span><input class="input" id="uRegUser" autocomplete="username" /></div>
+    <div class="field"><span>Password</span><input class="input" id="uRegPass" type="password" autocomplete="new-password" /></div>
+    <div class="field"><span>Ulangi password</span><input class="input" id="uRegPass2" type="password" autocomplete="new-password" /></div>
+    <div class="modal-error" id="uRegError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="uRegCancel">Batal</button>
+      <button class="btn btn-primary" id="uRegSubmit">Daftar & masuk</button>
+    </div>`;
+}
+function bindUserRegisterForm(overlay) {
+  const close = () => overlay.remove();
+  overlay.querySelector("#uRegCancel").addEventListener("click", close);
+  const submit = async () => {
+    const u = overlay.querySelector("#uRegUser").value.trim();
+    const p = overlay.querySelector("#uRegPass").value;
+    const p2 = overlay.querySelector("#uRegPass2").value;
+    const errEl = overlay.querySelector("#uRegError");
+    if (!u) { errEl.textContent = "Username tidak boleh kosong."; return; }
+    if (p.length < 6) { errEl.textContent = "Password minimal 6 karakter."; return; }
+    if (p !== p2) { errEl.textContent = "Konfirmasi password tidak cocok."; return; }
+    try {
+      const user = await usersCreate(u, p);
+      state.currentUser = user;
+      close(); renderAdminCorner(); render();
+      notify("Akun berhasil dibuat, langsung masuk.");
+    } catch (e) { errEl.textContent = e.message; }
+  };
+  overlay.querySelector("#uRegSubmit").addEventListener("click", submit);
+  overlay.querySelectorAll("#userAuthFormArea input").forEach((inp) => inp.addEventListener("keydown", (e) => e.key === "Enter" && submit()));
+  overlay.querySelector("#uRegUser").focus();
+}
+
+function openUserProfileModal() {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay"; overlay.id = "profileOverlay";
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <h2 class="modal-title">Profil Saya</h2>
+      <p class="modal-sub">Masuk sebagai <strong>${esc(state.currentUser.username)}</strong>.</p>
+      <div class="field"><span>Username baru</span><input class="input" id="profNewUser" placeholder="${esc(state.currentUser.username)}" /></div>
+      <div class="field"><span>Password baru</span><input class="input" type="password" id="profNewPass" placeholder="min 6 karakter" /></div>
+      <div class="modal-error" id="profError"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="profCancel">Tutup</button>
+        <button class="btn btn-primary" id="profSaveBtn">Simpan</button>
+      </div>
+      <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:14px;">
+        <div class="panel-title" style="margin:0 0 10px;">Verifikasi Telegram</div>
+        <div id="telegramLinkArea"></div>
+      </div>
+      <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:14px;">
+        <button class="btn btn-ghost btn-danger" id="profLogoutBtn" style="width:100%;">Keluar dari akun</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) { clearInterval(overlay._pollTimer); overlay.remove(); } });
+  const close = () => { clearInterval(overlay._pollTimer); overlay.remove(); };
+  overlay.querySelector("#profCancel").addEventListener("click", close);
+  overlay.querySelector("#profLogoutBtn").addEventListener("click", () => {
+    close(); state.currentUser = null; render(); renderAdminCorner();
+    notify("Berhasil keluar dari akun.");
+  });
+  overlay.querySelector("#profSaveBtn").addEventListener("click", async () => {
+    const newUser = overlay.querySelector("#profNewUser").value.trim();
+    const newPass = overlay.querySelector("#profNewPass").value;
+    const errEl = overlay.querySelector("#profError");
+    if (!newUser && !newPass) { errEl.textContent = "Isi username baru atau password baru dulu."; return; }
+    if (newPass && newPass.length < 6) { errEl.textContent = "Password baru minimal 6 karakter."; return; }
+    try {
+      await usersUpdate(state.currentUser.id, { username: newUser || undefined, password: newPass || undefined });
+      if (newUser) state.currentUser.username = newUser;
+      renderAdminCorner(); render();
+      errEl.textContent = ""; notify("Profil berhasil diperbarui.");
+    } catch (e) { errEl.textContent = e.message; }
+  });
+  renderTelegramLinkArea(overlay);
+}
+
+function renderTelegramLinkArea(overlay) {
+  const area = overlay.querySelector("#telegramLinkArea");
+  clearInterval(overlay._pollTimer);
+
+  if (state.currentUser.telegramId) {
+    area.innerHTML = `
+      <p class="desc" style="margin-bottom:10px;">Tertaut ke Telegram ID: <strong>${esc(state.currentUser.telegramId)}</strong>${state.currentUser.telegramUsername ? ` (${esc(state.currentUser.telegramUsername)})` : ""}.</p>
+      <button class="btn btn-ghost btn-danger" id="unlinkTgBtn">Putuskan tautan</button>`;
+    area.querySelector("#unlinkTgBtn").addEventListener("click", async () => {
+      try {
+        await usersUpdate(state.currentUser.id, { telegramId: "", telegramUsername: "" });
+        state.currentUser.telegramId = ""; state.currentUser.telegramUsername = "";
+        renderTelegramLinkArea(overlay); notify("Tautan Telegram diputuskan.");
+      } catch (e) { notify("Gagal: " + e.message); }
+    });
+    return;
+  }
+
+  area.innerHTML = `
+    <p class="desc" style="margin-bottom:10px;">Belum tertaut. Verifikasi lewat bot Telegram supaya riwayat pesanan tidak bisa nyasar ke akun orang lain.</p>
+    <button class="btn btn-secondary" id="startVerifyBtn">Mulai verifikasi</button>
+    <div id="verifyStatusArea" style="margin-top:10px;"></div>`;
+
+  area.querySelector("#startVerifyBtn").addEventListener("click", async () => {
+    const statusArea = area.querySelector("#verifyStatusArea");
+    statusArea.innerHTML = `<div class="muted" style="font-size:13px;">Membuat kode verifikasi…</div>`;
+    try {
+      const req = await createVerificationRequest(state.currentUser.id);
+      statusArea.innerHTML = `
+        <div class="price-tag" style="display:inline-block; font-size:18px; letter-spacing:3px;">${esc(req.code)}</div>
+        <p class="desc" style="margin:10px 0;">Buka Telegram, chat bot verifikasi WorldMarket, lalu kirim perintah ini:</p>
+        <div class="mono" style="background:var(--panel-2); border:1px solid var(--border); border-radius:7px; padding:8px 12px;">/verifikasi ${esc(req.code)}</div>
+        <p class="desc" style="margin:10px 0;">Kode berlaku 10 menit. Status di bawah ini dicek otomatis.</p>
+        <div id="verifyResultMsg" class="muted" style="font-size:13px;">Menunggu kamu mengirim perintah di Telegram…</div>`;
+      const doCheck = async () => {
+        const data = await checkVerificationStatus(req.id);
+        const msgEl = statusArea.querySelector("#verifyResultMsg");
+        if (!msgEl) return;
+        if (!data) { msgEl.textContent = "Gagal memeriksa status, coba lagi sebentar."; return; }
+        if (data.status === "verified") {
+          clearInterval(overlay._pollTimer);
+          await usersUpdate(state.currentUser.id, { telegramId: data.telegramId, telegramUsername: data.telegramUsername || "" });
+          state.currentUser.telegramId = data.telegramId;
+          state.currentUser.telegramUsername = data.telegramUsername || "";
+          renderTelegramLinkArea(overlay);
+          notify("Telegram berhasil ditautkan.");
+        } else if (data.expiresAt < now()) {
+          clearInterval(overlay._pollTimer);
+          msgEl.textContent = "Kode sudah kedaluwarsa. Klik \"Mulai verifikasi\" lagi untuk kode baru.";
+        } else {
+          msgEl.textContent = "Menunggu kamu mengirim perintah di Telegram…";
+        }
+      };
+      overlay._pollTimer = setInterval(doCheck, 4000);
+      doCheck();
+    } catch (e) { statusArea.innerHTML = `<div class="danger-text" style="font-size:13px;">${esc(e.message)}</div>`; }
+  });
+}
+
+function render() {
+  const adminTabIds = NAV_ADMIN.map((n) => n.id);
+  if (APP_MODE === "store") {
+    state.currentView = "public";
+    if (adminTabIds.includes(state.tab)) state.tab = "p-dashboard";
+  } else {
+    state.currentView = "admin";
+    if (!state.isAdmin) state.tab = "a-dashboard";
+  }
+  const main = document.getElementById("main");
+  const views = {
+    "p-dashboard": viewPublicDashboard, "a-dashboard": viewAdminDashboard,
+    apikeys: viewApikeysPublic, "a-apikeys": viewApikeysAdmin,
+    quotas: viewQuotasPublic, "a-quotas": viewQuotasAdmin,
+    aiworld: viewAiWorldChat, "aiworld-config": viewAiWorldConfig,
+    "p-orders": viewMyOrders,
+    owners: viewOwners, roles: viewRoles, warns: viewWarns, promo: viewPromo,
+    migration: viewMigration,
+    "settings-general": viewSettingsGeneral,
+    "settings-github": viewSettingsGithub,
+    "settings-payment": viewSettingsPayment,
+    "settings-supabase": viewSettingsSupabase,
+    "settings-accounts": viewSettingsAccounts,
+  };
+  main.innerHTML = views[state.tab] ? views[state.tab]() : "";
+  bindHandlers[state.tab] && bindHandlers[state.tab]();
+}
+const bindHandlers = {};
+
+function sectionHead(eyebrow, title, desc, violet) {
+  return `<div class="section-head"><div><div class="eyebrow ${violet ? "violet" : ""}">${esc(eyebrow)}</div><h1 class="title">${esc(title)}</h1><p class="desc">${esc(desc)}</p></div></div>`;
+}
+function currentPromoText(kind) {
+  const p = state.settings.promoReminder;
+  const arr = kind === "ak" ? p.apikeyTexts : p.quotaTexts;
+  if (!p.enabled || arr.length === 0) return null;
+  const intervalMs = Math.max(1, p.intervalMinutes) * 60000;
+  const idx = Math.floor(now() / intervalMs) % arr.length;
+  return arr[idx];
+}
+
+// ---------------------------------------------------------------------------
+// Public Dashboard
+// ---------------------------------------------------------------------------
+
+function viewPublicDashboard() {
+  const s = state.settings;
+  const activeQuotaCount = state.quotas.filter((q) => q.type === "permanent" || q.expiresAt > now()).reduce((sum, q) => sum + Number(q.amount), 0);
+  const totalApikeyUnits = state.apikeys.reduce((sum, k) => sum + Number(k.amount), 0);
+  return `
+    <div class="view">
+      <div class="hero-shimmer">${sectionHead(s.general.siteName, "Selamat datang", "Tempat beli apikey, kuota add owner, dan ngobrol sama AI World — semuanya langsung dari website ini.")}</div>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-value" data-countup="${totalApikeyUnits}">0</div><div class="stat-label">Unit apikey terjual</div></div>
+        <div class="stat"><div class="stat-value" data-countup="${activeQuotaCount}">0</div><div class="stat-label">Kuota addowner aktif</div></div>
+        <div class="stat"><div class="stat-value">${s.apikeyShop.enabled ? '<span class="live-dot"></span>Buka' : "Tutup"}</div><div class="stat-label">Status apikey shop</div></div>
+        <div class="stat"><div class="stat-value">${s.quotaShop.enabled ? '<span class="live-dot"></span>Buka' : "Tutup"}</div><div class="stat-label">Status quota shop</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="panel"><div class="panel-title">Apikey Shop</div><p class="desc" style="margin-bottom:14px;">Harga mulai ${rupiah(s.apikeyShop.pricePerUnit)} per unit.</p><button class="btn btn-primary" data-goto="apikeys">Beli apikey</button></div>
+        <div class="panel"><div class="panel-title">Quota Shop</div><p class="desc" style="margin-bottom:14px;">Kuota addowner temp mulai ${rupiah(s.quotaShop.priceTemp)}.</p><button class="btn btn-primary" data-goto="quotas">Beli kuota</button></div>
+      </div>
+      <div class="panel"><div class="panel-title">Ngobrol sama AI World</div><p class="desc" style="margin-bottom:14px;">AI asisten situs, bisa dipakai siapa saja tanpa login.</p><button class="btn btn-secondary" data-goto="aiworld">Buka AI World</button></div>
+    </div>`;
+}
+bindHandlers["p-dashboard"] = () => {
+  document.querySelectorAll("[data-goto]").forEach((btn) => btn.addEventListener("click", () => { state.tab = btn.dataset.goto; renderSidebar(); render(); }));
+  animateCountUps();
+};
+
+// ---------------------------------------------------------------------------
+// Pesanan Saya (user biasa yang login)
+// ---------------------------------------------------------------------------
+
+function matchesIdentity(value, identities) {
+  if (!value) return false;
+  const v = String(value).trim().toLowerCase();
+  return identities.some((id) => id && String(id).trim().toLowerCase() === v);
+}
+
+function viewMyOrders() {
+  if (!state.currentUser) {
+    return `
+      <div class="view">
+        ${sectionHead("Pesanan Saya", "Lihat riwayat belanjamu", "Masuk atau daftar dulu supaya pesanan apikey dan kuota kamu tercatat dan bisa dilihat di sini.")}
+        <div class="empty">Belum masuk. Klik "Masuk / Daftar" di kanan atas.</div>
+      </div>`;
+  }
+  const identities = [state.currentUser.username, state.currentUser.telegramId, state.currentUser.telegramUsername].filter(Boolean);
+  const myKeys = state.apikeys.filter((k) => matchesIdentity(k.buyer, identities));
+  const myQuotas = state.quotas.filter((q) => matchesIdentity(q.buyer, identities));
+  const myOwners = state.currentUser.telegramId ? state.owners.filter((o) => matchesIdentity(o.number, identities) || matchesIdentity(o.label, identities)) : [];
+  return `
+    <div class="view">
+      ${sectionHead("Pesanan Saya", `Riwayat belanja ${state.currentUser.username}`, state.currentUser.telegramId ? `Termasuk riwayat dari Telegram ID/Username yang ditautkan: ${esc(state.currentUser.telegramId)}.` : `Tautkan Telegram ID/Username di menu Profil supaya riwayat dari bot ikut muncul di sini.`)}
+      <div class="panel">
+        <div class="panel-title">Apikey</div>
+        ${myKeys.length === 0 ? `<div class="empty">Belum pernah beli apikey.</div>` : `
+        <table class="table"><thead><tr><th>Nomor Bot</th><th>Unit</th><th>Harga</th><th>Tanggal</th></tr></thead><tbody>
+          ${myKeys.map((k) => `<tr><td class="mono">${esc(k.botNumber || "—")}</td><td>${k.amount}</td><td>${rupiah(k.price)}</td><td class="muted">${fmtDate(k.createdAt)}</td></tr>`).join("")}
+        </tbody></table>`}
+      </div>
+      <div class="panel">
+        <div class="panel-title">Kuota Add Owner</div>
+        ${myQuotas.length === 0 ? `<div class="empty">Belum pernah beli kuota.</div>` : `
+        <table class="table"><thead><tr><th>Tipe</th><th>Jumlah</th><th>Harga</th><th>Kedaluwarsa</th></tr></thead><tbody>
+          ${myQuotas.map((q) => `<tr><td><span class="pill ${q.type === "permanent" ? "pill-on" : "pill-neutral"}">${q.type}</span></td><td>${q.amount}</td><td>${rupiah(q.price)}</td><td class="muted">${q.type === "permanent" ? "tidak ada" : fmtDate(q.expiresAt)}</td></tr>`).join("")}
+        </tbody></table>`}
+      </div>
+      ${state.currentUser.telegramId ? `
+      <div class="panel">
+        <div class="panel-title">Bot / Owner Terpasang</div>
+        ${myOwners.length === 0 ? `<div class="empty">Tidak ada entri Owner DB yang cocok dengan Telegram ID/Username kamu.</div>` : `
+        <table class="table"><thead><tr><th>Nomor</th><th>Catatan</th><th>Ditambahkan</th></tr></thead><tbody>
+          ${myOwners.map((o) => `<tr><td class="mono">${esc(o.number)}</td><td>${esc(o.label) || "—"}</td><td class="muted">${fmtDate(o.addedAt)}</td></tr>`).join("")}
+        </tbody></table>`}
+      </div>` : ""}
+    </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Admin Dashboard
+// ---------------------------------------------------------------------------
+
+function viewAdminDashboard() {
+  const s = state.settings;
+  const activeQuotaCount = state.quotas.filter((q) => q.type === "permanent" || q.expiresAt > now()).reduce((sum, q) => sum + Number(q.amount), 0);
+  const totalApikeyUnits = state.apikeys.reduce((sum, k) => sum + Number(k.amount), 0);
+  const flaggedWarns = state.warns.filter((w) => w.count >= s.warnSystem.maxWarn).length;
+  const pill = (on) => `<span class="pill ${on ? "pill-on" : "pill-off"}">${on ? "aktif" : "nonaktif"}</span>`;
+  const recent = [
+    ...state.owners.map((o) => ({ t: o.addedAt, text: `Owner ditambahkan: ${esc(o.number)}` })),
+    ...state.roles.map((r) => ({ t: r.addedAt, text: `Role ${esc(r.role)} untuk ${esc(r.username || r.userId)}` })),
+    ...state.apikeys.map((k) => ({ t: k.createdAt, text: `Apikey ${k.amount} unit dipasang untuk bot ${esc(k.botNumber || "-")} oleh ${esc(k.buyer)}` })),
+    ...state.quotas.map((q) => ({ t: q.createdAt, text: `Kuota addowner ${esc(q.type)} x${q.amount} untuk ${esc(q.buyer)}` })),
+  ].sort((a, b) => b.t - a.t).slice(0, 8);
+  return `
+    <div class="view">
+      ${sectionHead("Admin Console", "Ringkasan penuh sistem", "Halaman ini hanya bisa dilihat setelah login admin.", true)}
+      <div class="stat-row mode-admin-stats">
+        <div class="stat"><div class="stat-value" data-countup="${state.owners.length}">0</div><div class="stat-label">Nomor di Owner DB</div></div>
+        <div class="stat"><div class="stat-value" data-countup="${state.roles.length}">0</div><div class="stat-label">User di Role DB</div></div>
+        <div class="stat"><div class="stat-value" data-countup="${totalApikeyUnits}">0</div><div class="stat-label">Unit apikey terjual</div></div>
+        <div class="stat"><div class="stat-value" data-countup="${activeQuotaCount}">0</div><div class="stat-label">Kuota addowner aktif</div></div>
+        <div class="stat"><div class="stat-value" data-countup="${flaggedWarns}">0</div><div class="stat-label">User kena batas warn</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="panel"><div class="panel-title">Status toko</div>
+          <div class="kv"><span>Apikey shop</span>${pill(s.apikeyShop.enabled)}</div>
+          <div class="kv"><span>Quota shop</span>${pill(s.quotaShop.enabled)}</div>
+          <div class="kv"><span>Promo reminder</span>${pill(s.promoReminder.enabled)}</div>
+          <div class="kv"><span>AI World</span>${pill(s.aiWorld.enabled)}</div>
+        </div>
+        <div class="panel"><div class="panel-title">Aktivitas terbaru</div>
+          ${recent.length === 0 ? `<div class="empty">Belum ada aktivitas.</div>` : `<ul class="activity">${recent.map((r) => `<li><span class="mono muted" style="font-size:12px;">${fmtDate(r.t)}</span><span>${r.text}</span></li>`).join("")}</ul>`}
+        </div>
+      </div>
+    </div>`;
+}
+bindHandlers["a-dashboard"] = () => { animateCountUps(); };
+
+// ---------------------------------------------------------------------------
+// Owner DB (admin only)
+// ---------------------------------------------------------------------------
+
+function viewOwners() {
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Owner DB", "Nomor terdaftar sebagai owner", "Kelola nomor atau identitas yang punya akses sebagai owner di sistem ini.", true)}
+      <div class="form-row">
+        <input class="input" id="ownerNumber" placeholder="Nomor, contoh 6281234567890" />
+        <input class="input" id="ownerLabel" placeholder="Catatan (opsional)" />
+        <button class="btn btn-violet" id="ownerAddBtn">Tambah owner</button>
+      </div>
+      ${state.owners.length === 0 ? `<div class="empty">Owner DB masih kosong. Tambahkan nomor pertama di atas.</div>` : `
+      <table class="table"><thead><tr><th>Nomor</th><th>Catatan</th><th>Ditambahkan</th><th></th></tr></thead><tbody>
+        ${state.owners.map((o) => `<tr><td class="mono">${esc(o.number)}</td><td>${esc(o.label) || "—"}</td><td class="muted">${fmtDate(o.addedAt)}</td><td><button class="btn btn-ghost btn-danger" data-remove-owner="${o.id}">Hapus</button></td></tr>`).join("")}
+      </tbody></table>`}
+    </div>`;
+}
+bindHandlers.owners = () => {
+  document.getElementById("ownerAddBtn").addEventListener("click", () => {
+    const number = document.getElementById("ownerNumber").value.trim();
+    const label = document.getElementById("ownerLabel").value.trim();
+    if (!number) return notify("Nomor tidak boleh kosong.");
+    if (state.owners.some((o) => o.number === number)) return notify("Nomor itu sudah ada di Owner DB.");
+    state.owners.unshift({ id: uid(), number, label, addedAt: now() });
+    saveKey("wm:owners", state.owners); notify("Owner ditambahkan."); render();
+  });
+  document.querySelectorAll("[data-remove-owner]").forEach((btn) => btn.addEventListener("click", () => {
+    state.owners = state.owners.filter((o) => o.id !== btn.dataset.removeOwner);
+    saveKey("wm:owners", state.owners); notify("Owner dihapus."); render();
+  }));
+};
+
+// ---------------------------------------------------------------------------
+// Role DB (admin only)
+// ---------------------------------------------------------------------------
+
+function viewRoles() {
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Role DB", "Level akses pengguna", "Atur level akses tiap pengguna: developer, staff, partner, reseller, atau buyer.", true)}
+      <div class="form-row">
+        <input class="input" id="roleUserId" placeholder="User ID / identitas" />
+        <input class="input" id="roleUsername" placeholder="Nama (opsional)" />
+        <select class="input" id="roleSelect">${ROLE_LEVELS.map((r) => `<option value="${r}">${r}</option>`).join("")}</select>
+        <button class="btn btn-violet" id="roleAddBtn">Simpan role</button>
+      </div>
+      ${state.roles.length === 0 ? `<div class="empty">Belum ada user dengan role khusus. Semua user dianggap buyer secara default.</div>` : `
+      <table class="table"><thead><tr><th>User ID</th><th>Nama</th><th>Role</th><th>Sejak</th><th></th></tr></thead><tbody>
+        ${state.roles.map((r) => `<tr><td class="mono">${esc(r.userId)}</td><td>${esc(r.username) || "—"}</td><td><span class="role role-${r.role}">${r.role}</span></td><td class="muted">${fmtDate(r.addedAt)}</td><td><button class="btn btn-ghost btn-danger" data-remove-role="${r.id}">Hapus</button></td></tr>`).join("")}
+      </tbody></table>`}
+    </div>`;
+}
+bindHandlers.roles = () => {
+  document.getElementById("roleAddBtn").addEventListener("click", () => {
+    const userId = document.getElementById("roleUserId").value.trim();
+    const username = document.getElementById("roleUsername").value.trim();
+    const role = document.getElementById("roleSelect").value;
+    if (!userId) return notify("User ID tidak boleh kosong.");
+    const existing = state.roles.find((r) => r.userId === userId);
+    if (existing) { existing.role = role; if (username) existing.username = username; notify("Role user diperbarui."); }
+    else { state.roles.unshift({ id: uid(), userId, username, role, addedAt: now() }); notify("User ditambahkan ke Role DB."); }
+    saveKey("wm:roles", state.roles); render();
+  });
+  document.querySelectorAll("[data-remove-role]").forEach((btn) => btn.addEventListener("click", () => {
+    state.roles = state.roles.filter((r) => r.id !== btn.dataset.removeRole);
+    saveKey("wm:roles", state.roles); notify("User dihapus dari Role DB."); render();
+  }));
+};
+
+// ---------------------------------------------------------------------------
+// Apikey Shop — public vs admin
+// ---------------------------------------------------------------------------
+
+function viewApikeysPublic() {
+  const s = state.settings.apikeyShop;
+  const promo = currentPromoText("ak");
+  return `
+    <div class="view">
+      ${sectionHead("Apikey Shop", "Beli apikey", `Harga ${rupiah(s.pricePerUnit)} per unit. 25 apikey pertama tetap gratis per hari sebagai warming up.`)}
+      ${promo ? `<div class="promo-banner">📣 ${esc(promo)}</div>` : ""}
+      <div class="form-row">
+        ${state.currentUser ? `<div class="price-tag">Beli sebagai: ${esc(state.currentUser.username)}</div>` : `<input class="input" id="akBuyer" placeholder="Nama atau ID kamu" />`}
+        <input class="input" id="akBotNumber" placeholder="Nomor bot, contoh 6281234567890" />
+        <select class="input" id="akAmount">${s.options.map((o) => `<option value="${o}">${o} unit</option>`).join("")}</select>
+        <div class="price-tag" id="akPrice">${rupiah(s.options[0] * s.pricePerUnit)}</div>
+        <button class="btn btn-primary" id="akIssueBtn" ${s.enabled ? "" : "disabled"}>${s.enabled ? "Beli apikey" : "Toko tutup"}</button>
+      </div>
+      <p class="desc">Apikey yang dibeli langsung terpasang ke nomor bot yang kamu masukkan — bukan berupa kode yang perlu ditempel manual.</p>
+      <div id="akResult"></div>
+    </div>`;
+}
+bindHandlers.apikeys = () => {
+  const s = state.settings.apikeyShop;
+  const updatePrice = () => { document.getElementById("akPrice").textContent = rupiah(Number(document.getElementById("akAmount").value) * s.pricePerUnit); };
+  document.getElementById("akAmount").addEventListener("change", updatePrice);
+  const issueBtn = document.getElementById("akIssueBtn");
+  if (issueBtn) issueBtn.addEventListener("click", () => {
+    const buyer = state.currentUser ? state.currentUser.username : document.getElementById("akBuyer").value.trim();
+    const botNumber = document.getElementById("akBotNumber").value.trim();
+    const amount = Number(document.getElementById("akAmount").value);
+    if (!buyer) return notify("Isi nama/ID kamu dulu.");
+    if (!botNumber) return notify("Isi nomor bot yang mau dipasangi apikey.");
+    const price = amount * s.pricePerUnit;
+    const issue = () => {
+      const record = { id: uid(), buyer, botNumber, amount, price, createdAt: now() };
+      state.apikeys.unshift(record);
+      saveKey("wm:apikeys", state.apikeys);
+      notifyWebhook(`Order apikey baru: ${amount} unit untuk bot ${botNumber} oleh ${buyer} (${rupiah(record.price)})`);
+      notify("Pembayaran berhasil, apikey terpasang.");
+      document.getElementById("akResult").innerHTML = `<div class="panel"><div class="panel-title">Apikey berhasil dipasang</div><div>Nomor bot <span class="mono">${esc(botNumber)}</span> sekarang punya ${amount} unit apikey aktif.</div></div>`;
+    };
+    if (!fr3ApiKey()) { showPaymentDownScreen(); return; }
+    openCheckoutModal(price, `Apikey ${amount} unit untuk ${botNumber}`, issue);
+  });
+};
+
+function viewApikeysAdmin() {
+  const s = state.settings.apikeyShop;
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Apikey Shop", "Kelola apikey terpasang", `Harga saat ini ${rupiah(s.pricePerUnit)} per unit.`, true)}
+      ${state.apikeys.length === 0 ? `<div class="empty">Belum ada apikey yang terpasang.</div>` : `
+      <table class="table"><thead><tr><th>Nomor Bot</th><th>Pembeli</th><th>Unit</th><th>Harga</th><th>Dipasang</th><th></th></tr></thead><tbody>
+        ${state.apikeys.map((k) => `<tr><td class="mono">${esc(k.botNumber || "—")}</td><td>${esc(k.buyer)}</td><td>${Number(k.amount).toLocaleString("id-ID")}</td><td>${rupiah(k.price)}</td><td class="muted">${fmtDate(k.createdAt)}</td><td><button class="btn btn-ghost btn-danger" data-revoke-key="${k.id}">Cabut</button></td></tr>`).join("")}
+      </tbody></table>`}
+    </div>`;
+}
+bindHandlers["a-apikeys"] = () => {
+  document.querySelectorAll("[data-revoke-key]").forEach((btn) => btn.addEventListener("click", () => {
+    state.apikeys = state.apikeys.filter((k) => k.id !== btn.dataset.revokeKey);
+    saveKey("wm:apikeys", state.apikeys); notify("Apikey dicabut."); render();
+  }));
+};
+
+// ---------------------------------------------------------------------------
+// Quota Shop — public vs admin
+// ---------------------------------------------------------------------------
+
+function viewQuotasPublic() {
+  const s = state.settings.quotaShop;
+  const promo = currentPromoText("q");
+  return `
+    <div class="view">
+      ${sectionHead("Quota Shop", "Beli kuota add owner", `Temp ${rupiah(s.priceTemp)}/kuota (berlaku ${s.tempDurationDays} hari), permanen ${rupiah(s.pricePermanent)}/kuota.`)}
+      ${promo ? `<div class="promo-banner">📣 ${esc(promo)}</div>` : ""}
+      <div class="form-row">
+        ${state.currentUser ? `<div class="price-tag">Beli sebagai: ${esc(state.currentUser.username)}</div>` : `<input class="input" id="qBuyer" placeholder="Nama atau ID kamu" />`}
+        <select class="input" id="qType"><option value="temp">Temporary</option><option value="permanent">Permanent</option></select>
+        <select class="input" id="qAmount">${s.tempOptions.map((o) => `<option value="${o}">${o} kuota</option>`).join("")}</select>
+        <div class="price-tag" id="qPrice">${rupiah(s.priceTemp * s.tempOptions[0])}</div>
+        <button class="btn btn-primary" id="qBuyBtn" ${s.enabled ? "" : "disabled"}>${s.enabled ? "Beli kuota" : "Toko tutup"}</button>
+      </div>
+      <div id="qResult"></div>
+    </div>`;
+}
+bindHandlers.quotas = () => {
+  const s = state.settings.quotaShop;
+  const typeSel = document.getElementById("qType"), amtSel = document.getElementById("qAmount"), priceEl = document.getElementById("qPrice");
+  const refreshAmountOptions = () => { const opts = typeSel.value === "temp" ? s.tempOptions : s.permanentOptions; amtSel.innerHTML = opts.map((o) => `<option value="${o}">${o} kuota</option>`).join(""); updatePrice(); };
+  const updatePrice = () => { const unit = typeSel.value === "temp" ? s.priceTemp : s.pricePermanent; priceEl.textContent = rupiah(unit * Number(amtSel.value)); };
+  typeSel.addEventListener("change", refreshAmountOptions);
+  amtSel.addEventListener("change", updatePrice);
+  const buyBtn = document.getElementById("qBuyBtn");
+  if (buyBtn) buyBtn.addEventListener("click", () => {
+    const buyer = state.currentUser ? state.currentUser.username : document.getElementById("qBuyer").value.trim();
+    if (!buyer) return notify("Isi nama/ID kamu dulu.");
+    const type = typeSel.value, amount = Number(amtSel.value), unit = type === "temp" ? s.priceTemp : s.pricePermanent;
+    const price = unit * amount;
+    const issue = () => {
+      const record = { id: uid(), buyer, type, amount, price, createdAt: now(), expiresAt: type === "temp" ? now() + s.tempDurationDays * 86400000 : null };
+      state.quotas.unshift(record);
+      saveKey("wm:quotas", state.quotas);
+      notifyWebhook(`Order kuota baru: ${type} x${amount} oleh ${buyer} (${rupiah(record.price)})`);
+      notify(`Pembayaran berhasil, kuota ${type} x${amount} diterbitkan.`);
+      document.getElementById("qResult").innerHTML = `<div class="panel"><div class="panel-title">Kuota kamu</div><div>${type} × ${amount} — ${record.expiresAt ? "berlaku sampai " + fmtDate(record.expiresAt) : "tanpa batas waktu"}</div></div>`;
+    };
+    if (!fr3ApiKey()) { showPaymentDownScreen(); return; }
+    openCheckoutModal(price, `Kuota ${type} x${amount}`, issue);
+  });
+};
+
+function viewQuotasAdmin() {
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Quota Shop", "Kelola transaksi kuota", "Semua transaksi kuota addowner dari toko publik.", true)}
+      ${state.quotas.length === 0 ? `<div class="empty">Belum ada transaksi kuota.</div>` : `
+      <table class="table"><thead><tr><th>Pembeli</th><th>Tipe</th><th>Jumlah</th><th>Harga</th><th>Kedaluwarsa</th><th></th></tr></thead><tbody>
+        ${state.quotas.map((q) => { const expired = q.type === "temp" && q.expiresAt < now(); return `<tr><td>${esc(q.buyer)}</td><td><span class="pill ${q.type === "permanent" ? "pill-on" : "pill-neutral"}">${q.type}</span></td><td>${q.amount}</td><td>${rupiah(q.price)}</td><td class="${expired ? "danger-text" : "muted"}">${q.type === "permanent" ? "tidak ada" : (expired ? "sudah habis · " : "") + fmtDate(q.expiresAt)}</td><td><button class="btn btn-ghost btn-danger" data-remove-quota="${q.id}">Hapus</button></td></tr>`; }).join("")}
+      </tbody></table>`}
+    </div>`;
+}
+bindHandlers["a-quotas"] = () => {
+  document.querySelectorAll("[data-remove-quota]").forEach((btn) => btn.addEventListener("click", () => {
+    state.quotas = state.quotas.filter((q) => q.id !== btn.dataset.removeQuota);
+    saveKey("wm:quotas", state.quotas); notify("Kuota dihapus."); render();
+  }));
+};
+
+async function notifyWebhook(text) {
+  const url = state.settings.general.notifyWebhookUrl;
+  if (!url) return;
+  try { await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: text, text }) }); }
+  catch (e) { console.warn("webhook notify gagal", e); }
+}
+
+// ---------------------------------------------------------------------------
+// Warn System (admin only)
+// ---------------------------------------------------------------------------
+
+function viewWarns() {
+  const max = state.settings.warnSystem.maxWarn;
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Warn System", "Peringatan user", `Batas maksimum: ${max} warn sebelum ditindak.`, true)}
+      <div class="form-row">
+        <input class="input" id="wUserId" placeholder="User ID" />
+        <input class="input" id="wUsername" placeholder="Nama (opsional)" />
+        <input class="input" id="wReason" placeholder="Alasan warn" />
+        <button class="btn btn-violet" id="wAddBtn">Beri warn</button>
+      </div>
+      ${state.warns.length === 0 ? `<div class="empty">Belum ada user yang mendapat warn.</div>` : `
+      <table class="table"><thead><tr><th>User</th><th>Warn</th><th>Catatan terakhir</th><th></th></tr></thead><tbody>
+        ${state.warns.map((w) => `<tr><td>${esc(w.username || w.userId)}</td><td><span class="pill ${w.count >= max ? "pill-danger" : "pill-neutral"}">${w.count} / ${max}</span></td><td class="muted">${esc(w.notes[0]?.text) || "—"}</td><td class="row-actions"><button class="btn btn-ghost" data-reset-warn="${w.id}">Reset</button><button class="btn btn-ghost btn-danger" data-remove-warn="${w.id}">Hapus</button></td></tr>`).join("")}
+      </tbody></table>`}
+    </div>`;
+}
+bindHandlers.warns = () => {
+  const max = state.settings.warnSystem.maxWarn;
+  document.getElementById("wAddBtn").addEventListener("click", () => {
+    const userId = document.getElementById("wUserId").value.trim();
+    const username = document.getElementById("wUsername").value.trim();
+    const reason = document.getElementById("wReason").value.trim() || "tanpa alasan";
+    if (!userId) return notify("User ID tidak boleh kosong.");
+    const existing = state.warns.find((w) => w.userId === userId);
+    if (existing) { existing.count += 1; existing.notes.unshift({ text: reason, at: now() }); if (username) existing.username = username; notify(existing.count >= max ? `${existing.username || existing.userId} mencapai batas warn (${max}).` : "Warn ditambahkan."); }
+    else { state.warns.unshift({ id: uid(), userId, username, count: 1, notes: [{ text: reason, at: now() }] }); notify("Warn pertama dicatat."); }
+    saveKey("wm:warns", state.warns); render();
+  });
+  document.querySelectorAll("[data-reset-warn]").forEach((btn) => btn.addEventListener("click", () => {
+    const w = state.warns.find((x) => x.id === btn.dataset.resetWarn); if (w) { w.count = 0; w.notes = []; }
+    saveKey("wm:warns", state.warns); notify("Warn direset."); render();
+  }));
+  document.querySelectorAll("[data-remove-warn]").forEach((btn) => btn.addEventListener("click", () => {
+    state.warns = state.warns.filter((w) => w.id !== btn.dataset.removeWarn);
+    saveKey("wm:warns", state.warns); notify("Dihapus dari daftar warn."); render();
+  }));
+};
+
+// ---------------------------------------------------------------------------
+// Promo Reminder (admin only)
+// ---------------------------------------------------------------------------
+
+function textListBlock(items, kind) {
+  return `
+    <div class="form-row"><input class="input" id="${kind}Draft" placeholder="Tulis teks promo ${kind === "ak" ? "apikey" : "kuota"} baru…" /><button class="btn btn-secondary" data-add-text="${kind}">Tambah teks</button></div>
+    <ul class="text-list">${items.map((t, i) => `<li><span>${esc(t)}</span><button class="btn btn-ghost btn-danger" data-remove-text="${kind}:${i}">Hapus</button></li>`).join("")}</ul>`;
+}
+function viewPromo() {
+  const p = state.settings.promoReminder;
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Promo Reminder", "Banner promo bergilir", "Muncul otomatis di halaman Apikey Shop dan Quota Shop, bergilir sesuai interval.", true)}
+      <div class="panel">
+        <div class="kv"><span>Aktifkan promo reminder</span><button class="toggle ${p.enabled ? "on" : ""}" id="promoToggle"><span class="toggle-knob"></span></button></div>
+        <div class="kv"><span>Interval pergantian</span><div class="inline-input"><input class="input input-sm" type="number" min="1" id="promoInterval" value="${p.intervalMinutes}" /><span class="muted">menit</span></div></div>
+      </div>
+      <div class="grid-2">
+        <div><div class="panel-title">Teks promo apikey</div>${textListBlock(p.apikeyTexts, "ak")}</div>
+        <div><div class="panel-title">Teks promo kuota</div>${textListBlock(p.quotaTexts, "q")}</div>
+      </div>
+    </div>`;
+}
+bindHandlers.promo = () => {
+  const p = state.settings.promoReminder;
+  document.getElementById("promoToggle").addEventListener("click", () => { p.enabled = !p.enabled; saveKey("wm:settings", state.settings); notify(p.enabled ? "Promo reminder diaktifkan." : "Promo reminder dimatikan."); render(); });
+  document.getElementById("promoInterval").addEventListener("change", (e) => { p.intervalMinutes = Number(e.target.value) || 1; saveKey("wm:settings", state.settings); });
+  document.querySelectorAll("[data-add-text]").forEach((btn) => btn.addEventListener("click", () => {
+    const kind = btn.dataset.addText, input = document.getElementById(kind + "Draft"), val = input.value.trim();
+    if (!val) return; (kind === "ak" ? p.apikeyTexts : p.quotaTexts).push(val); saveKey("wm:settings", state.settings); render();
+  }));
+  document.querySelectorAll("[data-remove-text]").forEach((btn) => btn.addEventListener("click", () => {
+    const [kind, idx] = btn.dataset.removeText.split(":"); const arr = kind === "ak" ? p.apikeyTexts : p.quotaTexts;
+    arr.splice(Number(idx), 1); saveKey("wm:settings", state.settings); render();
+  }));
+};
+
+// ---------------------------------------------------------------------------
+// AI World — public chat vs admin config
+// ---------------------------------------------------------------------------
+
+function renderChatMessages() {
+  const box = document.getElementById("chatBox"); if (!box) return;
+  box.innerHTML = state.chat.messages.map((m) => `<div class="chat-msg ${m.role}">${esc(m.text)}</div>`).join("");
+  box.scrollTop = box.scrollHeight;
+}
+function viewAiWorldChat() {
+  const a = state.settings.aiWorld;
+  if (state.chat.messages.length === 0) state.chat.messages.push({ role: "ai", text: "Halo! Aku AI World, asisten AI di situs ini. Tanya apa aja seputar apikey, kuota addowner, atau hal umum lainnya." });
+  return `
+    <div class="view">
+      ${sectionHead("AI World", "Ngobrol sama AI World", a.requireTrigger ? `Sertakan salah satu kata pemicu di pesanmu: ${a.triggerKeywords.join(", ")}.` : "AI biasa, bisa dipakai siapa saja tanpa login.")}
+      ${!a.enabled ? `<div class="empty">AI World sedang nonaktif. Coba lagi nanti.</div>` : `
+      <div class="chat-box" id="chatBox"></div>
+      <div class="chat-input-row"><input class="input" id="chatInput" placeholder="Tulis pesan…" /><button class="btn btn-primary" id="chatSendBtn">Kirim</button></div>`}
+    </div>`;
+}
+bindHandlers.aiworld = () => {
+  renderChatMessages();
+  const sendBtn = document.getElementById("chatSendBtn"), input = document.getElementById("chatInput");
+  if (!sendBtn) return;
+  const send = async () => {
+    const a = state.settings.aiWorld, text = input.value.trim();
+    if (!text || state.chat.sending) return;
+    if (a.enabled === false) {
+      state.chat.messages.push({ role: "notice", text: "AI World sedang dinonaktifkan oleh admin." });
+      renderChatMessages(); return;
+    }
+    if (a.requireTrigger) {
+      const lower = text.toLowerCase();
+      if (!a.triggerKeywords.some((k) => lower.includes(k.toLowerCase()))) {
+        state.chat.messages.push({ role: "notice", text: `Sertakan kata pemicu (misalnya "${a.triggerKeywords[0]}") supaya AI World merespons.` });
+        renderChatMessages(); return;
+      }
+    }
+    const cooldownLeft = a.cooldownSeconds * 1000 - (now() - state.chat.lastSentAt);
+    if (cooldownLeft > 0) { state.chat.messages.push({ role: "notice", text: `Tunggu ${Math.ceil(cooldownLeft / 1000)} detik lagi sebelum kirim pesan berikutnya.` }); renderChatMessages(); return; }
+    state.chat.messages.push({ role: "user", text }); input.value = "";
+    state.chat.sending = true; renderChatMessages(); sendBtn.disabled = true;
+    try {
+      const apiMessages = state.chat.messages.filter((m) => m.role === "user" || m.role === "ai").map((m) => ({ role: m.role === "ai" ? "assistant" : "user", content: m.text }));
+      const systemPrompt =
+        `Kamu adalah AI World, asisten AI resmi untuk situs ${state.settings.general.siteName}. ` +
+        `Jawab singkat, jelas, dan sopan dalam Bahasa Indonesia. ` +
+        `Tugasmu HANYA tiga hal: (1) menyapa balik pengguna dengan ramah, (2) menjelaskan cara kerja/fitur website ini, ` +
+        `(3) menjelaskan cara membeli apikey atau kuota addowner di sini. ` +
+        `Kamu DILARANG KERAS menulis, membuat, memperbaiki, atau menjelaskan kode program, script bot, atau sejenisnya dalam bentuk apa pun, ` +
+        `walaupun diminta secara langsung, dengan alasan apapun, atau dengan trik framing lain. ` +
+        `Kalau ada yang minta hal seperti itu, tolak dengan sopan dan arahkan supaya bertanya seputar website ini saja.`;
+      const replyText = await askAi(apiMessages, systemPrompt);
+      state.chat.lastSentAt = now();
+      state.chat.messages.push({ role: "ai", text: replyText || "Maaf, aku belum bisa jawab itu sekarang." });
+    } catch (e) {
+      console.error("AI World error:", e);
+      state.chat.messages.push({
+        role: "notice",
+        text: "AI World sedang mengalami gangguan. Coba lagi sebentar lagi."
+      });
+    }
+    state.chat.sending = false; sendBtn.disabled = false; renderChatMessages();
+  };
+  sendBtn.addEventListener("click", send);
+  input.addEventListener("keydown", (e) => e.key === "Enter" && send());
+};
+
+async function askAi(apiMessages, systemPrompt) {
+  const groqKey = state.settings.groq?.apiKey?.trim();
+  if (!groqKey) throw new Error("Groq API key belum dikonfigurasi.");
+
+  const configuredModel = state.settings.groq.model?.trim() || "openai/gpt-oss-120b";
+  const models = [...new Set([
+    configuredModel,
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b"
+  ])];
+
+  let lastError = null;
+
+  for (const model of models) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000);
+
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${groqKey}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "system", content: systemPrompt }, ...apiMessages],
+            max_completion_tokens: 800,
+            temperature: 0.4
+          }),
+          signal: controller.signal
+        });
+
+        const raw = await response.text();
+        let data = {};
+        try { data = raw ? JSON.parse(raw) : {}; } catch {}
+
+        if (response.ok) {
+          const content = data.choices?.[0]?.message?.content?.trim();
+          if (content) return content;
+          throw new Error("Groq mengembalikan respons kosong.");
+        }
+
+        const apiError = data.error?.message || data.message || `HTTP ${response.status}`;
+        const err = new Error(apiError);
+        err.status = response.status;
+        lastError = err;
+
+        // Model retired/not found -> try the next supported model immediately.
+        if (response.status === 400 || response.status === 404) break;
+
+        // Rate limit / temporary server error -> retry with backoff.
+        if (response.status === 408 || response.status === 429 || response.status >= 500) {
+          await new Promise(r => setTimeout(r, 900 * (attempt + 1)));
+          continue;
+        }
+        throw err;
+      } catch (e) {
+        lastError = e.name === "AbortError"
+          ? new Error("Request AI timeout setelah 25 detik.")
+          : e;
+        if (e.name === "AbortError" || /Failed to fetch|NetworkError/i.test(e.message || "")) {
+          await new Promise(r => setTimeout(r, 900 * (attempt + 1)));
+          continue;
+        }
+        if (e.status === 400 || e.status === 404) break;
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 900 * (attempt + 1)));
+          continue;
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+  }
+
+  throw lastError || new Error("Groq API gagal merespons.");
+}
+
+function viewAiWorldConfig() {
+  const a = state.settings.aiWorld;
+  const g = state.settings.groq || { apiKey: "", model: "llama-3.3-70b-versatile" };
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Konfigurasi AI World", "Atur perilaku AI World", "Halaman chat AI World tetap terbuka untuk semua orang — ini hanya pengaturannya.", true)}
+      <div class="panel">
+        <div class="kv"><span>Aktifkan AI World</span><button class="toggle ${a.enabled ? "on" : ""}" id="awEnabled"><span class="toggle-knob"></span></button></div>
+        <div class="kv"><span>Wajib pakai kata pemicu</span><button class="toggle ${a.requireTrigger ? "on" : ""}" id="awTrigger"><span class="toggle-knob"></span></button></div>
+        <div class="kv"><span>Cooldown balasan</span><div class="inline-input"><input class="input input-sm" type="number" min="0" id="awCooldown" value="${a.cooldownSeconds}" /><span class="muted">detik</span></div></div>
+      </div>
+      <div class="panel-title">Kata pemicu</div>
+      <div class="form-row"><input class="input" id="awKwInput" placeholder="Tambah kata pemicu, contoh: world md" /><button class="btn btn-secondary" id="awKwAdd">Tambah</button></div>
+      <div class="chip-row">${a.triggerKeywords.map((k, i) => `<span class="chip">${esc(k)}<button data-remove-kw="${i}">×</button></span>`).join("")}</div>
+
+      <div class="panel">
+        <div class="panel-title">Model AI (Groq)</div>
+        <p class="desc" style="margin-bottom:14px;">AI World sekarang memakai Groq. API key wajib diisi agar chat dapat merespons.</p>
+        <div class="grid-2">
+          <label class="field"><span>Groq API Key</span><input class="input" type="password" id="groqApiKey" value="${esc(g.apiKey)}" placeholder="gsk_…" /></label>
+          <label class="field"><span>Model</span><input class="input" id="groqModel" value="${esc(g.model)}" placeholder="openai/gpt-oss-120b" /></label>
+        </div>
+        <p class="desc" style="margin-top:6px; color:var(--red);">Sama seperti API key payment gateway sebelumnya: key ini tersimpan di file website yang berjalan di browser, jadi bisa terlihat lewat "View Source". Pertimbangkan risikonya sebelum mengisi di sini.</p>
+        <p class="desc" style="margin-top:10px;">AI World tetap tunduk pada aturan ketat: hanya boleh menyapa, menjelaskan website ini, dan menjelaskan cara beli apikey/kuota — dilarang menulis script bot atau kode apa pun, berlaku untuk provider mana pun yang dipakai.</p>
+      </div>
+    </div>`;
+}
+bindHandlers["aiworld-config"] = () => {
+  const a = state.settings.aiWorld;
+  if (!state.settings.groq) state.settings.groq = { apiKey: "", model: "openai/gpt-oss-120b" };
+  const g = state.settings.groq;
+  document.getElementById("groqApiKey").addEventListener("change", (e) => { g.apiKey = e.target.value.trim(); saveKey("wm:settings", state.settings); });
+  document.getElementById("groqModel").addEventListener("change", (e) => { g.model = e.target.value.trim() || "openai/gpt-oss-120b"; saveKey("wm:settings", state.settings); });
+  document.getElementById("awEnabled").addEventListener("click", () => { a.enabled = !a.enabled; saveKey("wm:settings", state.settings); render(); });
+  document.getElementById("awTrigger").addEventListener("click", () => { a.requireTrigger = !a.requireTrigger; saveKey("wm:settings", state.settings); render(); });
+  document.getElementById("awCooldown").addEventListener("change", (e) => { a.cooldownSeconds = Number(e.target.value) || 0; saveKey("wm:settings", state.settings); });
+  const addKw = () => { const input = document.getElementById("awKwInput"); const val = input.value.trim().toLowerCase(); if (!val) return; a.triggerKeywords.push(val); saveKey("wm:settings", state.settings); render(); };
+  document.getElementById("awKwAdd").addEventListener("click", addKw);
+  document.getElementById("awKwInput").addEventListener("keydown", (e) => e.key === "Enter" && addKw());
+  document.querySelectorAll("[data-remove-kw]").forEach((btn) => btn.addEventListener("click", () => { a.triggerKeywords.splice(Number(btn.dataset.removeKw), 1); saveKey("wm:settings", state.settings); render(); }));
+};
+
+// ---------------------------------------------------------------------------
+// Migrasi Database (admin only) — pindahkan data dari repo GitHub lama ke baru
+// ---------------------------------------------------------------------------
+
+async function ghGetFile(repo, branch, token, path) {
+  const url = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch || "main")}`;
+  const headers = { Accept: "application/vnd.github+json" };
+  if (token) headers.Authorization = `token ${token}`;
+  const res = await fetch(url, { headers });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Gagal ambil file (${res.status})`);
+  const data = await res.json();
+  return { text: b64DecodeUnicode(data.content.replace(/\n/g, "")), sha: data.sha };
+}
+async function ghPutFile(repo, branch, token, path, contentText, sha, message) {
+  if (!token) throw new Error("Token repo tujuan wajib diisi untuk menulis file.");
+  const url = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`;
+  const headers = { Accept: "application/vnd.github+json", Authorization: `token ${token}`, "Content-Type": "application/json" };
+  const body = { message: message || "Update dari WorldMarket Panel", content: b64EncodeUnicode(contentText), branch: branch || "main" };
+  if (sha) body.sha = sha;
+  const res = await fetch(url, { method: "PUT", headers, body: JSON.stringify(body) });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || `Gagal menyimpan file (${res.status})`); }
+  return res.json();
+}
+function buildDatabaseExport() {
+  return JSON.stringify({ owners: state.owners, roles: state.roles, apikeys: state.apikeys, quotas: state.quotas, warns: state.warns, settings: state.settings, exportedAt: now() }, null, 2);
+}
+function buildMainDatabaseExport() {
+  return JSON.stringify({ owners: state.owners, apikeys: state.apikeys, quotas: state.quotas, warns: state.warns, settings: state.settings, exportedAt: now() }, null, 2);
+}
+function buildRolesExport() {
+  return JSON.stringify({ roles: state.roles, exportedAt: now() }, null, 2);
+}
+
+// ---------------------------------------------------------------------------
+// Payment Gateway (FR3 NEWERA) — website TIDAK PERNAH menyimpan API key FR3.
+// Semua request lewat payment-server (project terpisah, lihat folder
+// payment-server/) yang menyimpan API key itu dengan aman di server.
+// ---------------------------------------------------------------------------
+
+const FR3_BASE = "https://fr3newera.com/api/v1";
+function fr3ApiKey() {
+  return state.settings.payment?.apiKey?.trim() || "";
+}
+async function createCheckout(nominal) {
+  const apikey = fr3ApiKey();
+  if (!apikey) throw new Error("Payment gateway belum dikonfigurasi admin.");
+  const res = await fetch(`${FR3_BASE}/topup`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ apikey, nominal, add_mdr_to_customer: !!state.settings.payment.addMdrToCustomer }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.status !== 200) throw new Error(data.error || data.message || "Gagal membuat QRIS.");
+  return { trxId: data.data.trxId, qrString: data.data.qr_string, totalTransfer: data.data.totalTransfer, expiry: data.data.expiry };
+}
+async function checkCheckoutStatus(trxId) {
+  const apikey = fr3ApiKey();
+  if (!apikey) return null;
+  const res = await fetch(`${FR3_BASE}/check-status?apikey=${encodeURIComponent(apikey)}&idTransaksi=${encodeURIComponent(trxId)}`);
+  const data = await res.json();
+  if (!res.ok || data.status !== 200) throw new Error(data.error || "Gagal cek status pembayaran.");
+  return { status: data.data.status, amount: data.data.amount, totalTransfer: data.data.totalTransfer };
+}
+function cancelCheckout(trxId) {
+  const apikey = fr3ApiKey();
+  if (!apikey) return;
+  fetch(`${FR3_BASE}/topup/cancel`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ apikey, trxId }) }).catch(() => {});
+}
+function qrImageUrl(qrString) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(qrString)}`;
+}
+
+// Modal QRIS generik: onSuccess dipanggil sekali setelah status SUCCESS.
+function showPaymentDownScreen() {
+  if (document.getElementById("paymentDownOverlay")) return;
+  const overlay = document.createElement("div");
+  overlay.className = "payment-down-overlay";
+  overlay.id = "paymentDownOverlay";
+  overlay.innerHTML = `
+    <div class="payment-down-icon">⚠️</div>
+    <div class="payment-down-title">Pembayaran Sedang Bermasalah</div>
+    <p class="payment-down-desc">Sistem pembayaran belum bisa memproses transaksi saat ini. Silakan coba lagi beberapa saat lagi, atau hubungi admin kalau masalah ini terus berlanjut.</p>
+    <button class="btn btn-secondary" id="paymentDownClose">Tutup</button>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector("#paymentDownClose").addEventListener("click", () => overlay.remove());
+}
+
+function openCheckoutModal(nominal, label, onSuccess) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay"; overlay.id = "checkoutOverlay";
+  overlay.innerHTML = `
+    <div class="modal-box" style="max-width:360px; text-align:center;">
+      <h2 class="modal-title">Bayar dengan QRIS</h2>
+      <p class="modal-sub">${esc(label)} — ${rupiah(nominal)}</p>
+      <div id="checkoutBody"><div class="muted" style="font-size:13px;">Membuat QRIS…</div></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="checkoutCancel" style="width:100%;">Batalkan</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  let trxId = null, polling = null;
+  const close = () => { clearInterval(polling); if (trxId) cancelCheckout(trxId); overlay.remove(); };
+  overlay.querySelector("#checkoutCancel").addEventListener("click", close);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+  (async () => {
+    const body = overlay.querySelector("#checkoutBody");
+    try {
+      const req = await createCheckout(nominal);
+      trxId = req.trxId;
+      body.innerHTML = `
+        <img src="${qrImageUrl(req.qrString)}" alt="QRIS" style="width:100%; max-width:220px; border-radius:8px; margin:0 auto; display:block;" />
+        <p class="desc" style="margin:12px 0 4px;">Total bayar: <strong>${rupiah(req.totalTransfer)}</strong></p>
+        <div id="checkoutStatusMsg" class="muted" style="font-size:13px;">Menunggu pembayaran…</div>`;
+      let failCount = 0;
+      const doCheck = async () => {
+        try {
+          const st = await checkCheckoutStatus(trxId);
+          failCount = 0;
+          const msgEl = overlay.querySelector("#checkoutStatusMsg");
+          if (!msgEl || !st) return;
+          if (st.status === "SUCCESS") {
+            clearInterval(polling);
+            trxId = null;
+            overlay.remove();
+            onSuccess();
+          } else if (st.status === "EXPIRED" || st.status === "CANCELED") {
+            clearInterval(polling);
+            msgEl.textContent = "QRIS kedaluwarsa/dibatalkan. Tutup dan coba beli lagi.";
+          } else {
+            msgEl.textContent = "Menunggu pembayaran…";
+          }
+        } catch (e) {
+          failCount++;
+          if (failCount >= 2) {
+            clearInterval(polling);
+            trxId = null;
+            overlay.remove();
+            showPaymentDownScreen();
+          }
+        }
+      };
+      polling = setInterval(doCheck, 4000);
+    } catch (e) {
+      overlay.remove();
+      showPaymentDownScreen();
+    }
+  })();
+}
+
+function viewMigration() {
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Migrasi Database", "Pindahkan database ke repo baru", "Ambil file database dari repository GitHub lama, lalu simpan ke repository GitHub baru. Bisa juga langsung diterapkan ke panel ini.", true)}
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-title">Repo lama (sumber)</div>
+          <label class="field"><span>owner/nama-repo</span><input class="input" id="migSrcRepo" placeholder="username/repo-lama" /></label>
+          <label class="field"><span>Branch</span><input class="input" id="migSrcBranch" value="main" /></label>
+          <label class="field"><span>Token (kosongkan jika repo publik)</span><input class="input" type="password" id="migSrcToken" placeholder="ghp_…" /></label>
+          <label class="field"><span>Path file database</span><input class="input" id="migSrcPath" value="worldmarket-database.json" /></label>
+          <button class="btn btn-secondary" id="migFetchBtn">Ambil dari sumber</button>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Repo baru (tujuan)</div>
+          <label class="field"><span>owner/nama-repo</span><input class="input" id="migDstRepo" placeholder="username/repo-baru" /></label>
+          <label class="field"><span>Branch</span><input class="input" id="migDstBranch" value="main" /></label>
+          <label class="field"><span>Token</span><input class="input" type="password" id="migDstToken" placeholder="ghp_…" /></label>
+          <label class="field"><span>Path file database</span><input class="input" id="migDstPath" value="worldmarket-database.json" /></label>
+          <div class="kv"><span>Terapkan ke panel ini juga</span><button class="toggle" id="migApplyToggle"><span class="toggle-knob"></span></button></div>
+          <button class="btn btn-violet" id="migPushBtn" disabled>Pindahkan ke tujuan</button>
+        </div>
+      </div>
+      <div class="panel"><div class="panel-title">Status migrasi</div><div id="migStatus" class="muted" style="font-size:13px;">Belum ada aktivitas migrasi.</div></div>
+    </div>`;
+}
+bindHandlers.migration = () => {
+  let applyLocally = false;
+  const statusEl = document.getElementById("migStatus");
+  const pushBtn = document.getElementById("migPushBtn");
+  const setStatus = (html, cls) => { statusEl.innerHTML = html; statusEl.className = cls || "muted"; statusEl.style.fontSize = "13px"; };
+
+  document.getElementById("migApplyToggle").addEventListener("click", (e) => { applyLocally = !applyLocally; e.currentTarget.classList.toggle("on", applyLocally); });
+
+  document.getElementById("migFetchBtn").addEventListener("click", async () => {
+    const repo = document.getElementById("migSrcRepo").value.trim();
+    const branch = document.getElementById("migSrcBranch").value.trim() || "main";
+    const token = document.getElementById("migSrcToken").value.trim();
+    const path = document.getElementById("migSrcPath").value.trim() || "worldmarket-database.json";
+    if (!repo) return notify("Isi repo sumber dulu.");
+    setStatus("Mengambil file dari repo sumber…");
+    try {
+      const file = await ghGetFile(repo, branch, token, path);
+      if (!file) { setStatus(`File "${esc(path)}" tidak ditemukan di ${esc(repo)}.`, "danger-text"); return; }
+      let preview;
+      try {
+        const parsed = JSON.parse(file.text);
+        preview = `Owner: ${parsed.owners?.length ?? 0} · Role: ${parsed.roles?.length ?? 0} · Apikey: ${parsed.apikeys?.length ?? 0} · Kuota: ${parsed.quotas?.length ?? 0} · Warn: ${parsed.warns?.length ?? 0}`;
+      } catch { preview = "File ditemukan, tapi bukan format JSON yang dikenali. Tetap bisa dipindahkan apa adanya."; }
+      state.migration.fetchedText = file.text;
+      state.migration.fetchedFrom = `${repo}@${branch}/${path}`;
+      setStatus(`Berhasil ambil dari ${esc(repo)}. ${esc(preview)}`, "ok-text");
+      pushBtn.disabled = false;
+    } catch (e) { setStatus(`Gagal ambil dari sumber: ${esc(e.message)}`, "danger-text"); }
+  });
+
+  pushBtn.addEventListener("click", async () => {
+    const repo = document.getElementById("migDstRepo").value.trim();
+    const branch = document.getElementById("migDstBranch").value.trim() || "main";
+    const token = document.getElementById("migDstToken").value.trim();
+    const path = document.getElementById("migDstPath").value.trim() || "worldmarket-database.json";
+    if (!repo || !token) return notify("Isi repo tujuan dan token dulu.");
+    if (!state.migration.fetchedText) return notify("Ambil data dari sumber dulu.");
+    setStatus("Menyimpan ke repo tujuan…");
+    try {
+      let sha;
+      try { const existing = await ghGetFile(repo, branch, token, path); if (existing) sha = existing.sha; } catch {}
+      await ghPutFile(repo, branch, token, path, state.migration.fetchedText, sha, `Migrasi database dari ${state.migration.fetchedFrom}`);
+      setStatus(`Berhasil dipindahkan ke ${esc(repo)}/${esc(path)}.`, "ok-text");
+      notify("Migrasi database berhasil.");
+      if (applyLocally) {
+        try {
+          const parsed = JSON.parse(state.migration.fetchedText);
+          if (parsed.owners) state.owners = parsed.owners;
+          if (parsed.roles) state.roles = parsed.roles;
+          if (parsed.apikeys) state.apikeys = parsed.apikeys;
+          if (parsed.quotas) state.quotas = parsed.quotas;
+          if (parsed.warns) state.warns = parsed.warns;
+          if (parsed.settings) state.settings = { ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), ...parsed.settings };
+          await Promise.all([
+            saveKey("wm:owners", state.owners), saveKey("wm:roles", state.roles), saveKey("wm:apikeys", state.apikeys),
+            saveKey("wm:quotas", state.quotas), saveKey("wm:warns", state.warns), saveKey("wm:settings", state.settings),
+          ]);
+          notify("Data hasil migrasi diterapkan ke panel ini.");
+          renderAll();
+        } catch (e) { notify("Gagal menerapkan data ke panel: " + e.message); }
+      }
+    } catch (e) { setStatus(`Gagal simpan ke tujuan: ${esc(e.message)}`, "danger-text"); }
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Settings (admin only)
+// ---------------------------------------------------------------------------
+
+function viewSettingsGeneral() {
+  const g = state.settings.general, ak = state.settings.apikeyShop, q = state.settings.quotaShop, wn = state.settings.warnSystem;
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Pengaturan Umum", "Identitas situs & harga toko", "Nama situs, notifikasi, sesi admin, dan harga apikey/kuota.", true)}
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-title">Pengaturan umum</div>
+          <label class="field"><span>Nama situs</span><input class="input" id="setSiteName" value="${esc(g.siteName)}" /></label>
+          <label class="field"><span>Webhook notifikasi order baru (opsional)</span><input class="input" id="setWebhook" value="${esc(g.notifyWebhookUrl)}" placeholder="https://discord.com/api/webhooks/…" /></label>
+          <label class="field"><span>Auto-logout admin setelah tidak aktif (menit)</span><input class="input" type="number" id="setSessionTimeout" value="${g.sessionTimeoutMinutes}" /></label>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Harga toko</div>
+          <label class="field"><span>Harga apikey / unit</span><input class="input" type="number" id="setApikeyPrice" value="${ak.pricePerUnit}" /></label>
+          <label class="field"><span>Harga kuota temporary</span><input class="input" type="number" id="setQuotaTempPrice" value="${q.priceTemp}" /></label>
+          <label class="field"><span>Harga kuota permanent</span><input class="input" type="number" id="setQuotaPermPrice" value="${q.pricePermanent}" /></label>
+          <label class="field"><span>Masa berlaku kuota temp (hari)</span><input class="input" type="number" id="setQuotaDays" value="${q.tempDurationDays}" /></label>
+          <label class="field"><span>Batas maksimum warn</span><input class="input" type="number" id="setMaxWarn" value="${wn.maxWarn}" /></label>
+        </div>
+      </div>
+      <button class="btn btn-violet" id="saveGeneralBtn">Simpan Pengaturan Umum</button>
+      <div id="saveGeneralStatus" class="muted" style="font-size:13px;"></div>
+    </div>`;
+}
+bindHandlers["settings-general"] = () => {
+  const g = state.settings.general, ak = state.settings.apikeyShop, q = state.settings.quotaShop, wn = state.settings.warnSystem;
+  document.getElementById("setSiteName").addEventListener("change", () => renderSidebar());
+  document.getElementById("saveGeneralBtn").addEventListener("click", async () => {
+    g.siteName = document.getElementById("setSiteName").value.trim() || "WorldMarket";
+    g.notifyWebhookUrl = document.getElementById("setWebhook").value.trim();
+    g.sessionTimeoutMinutes = Number(document.getElementById("setSessionTimeout").value) || 30;
+    ak.pricePerUnit = Number(document.getElementById("setApikeyPrice").value) || 0;
+    q.priceTemp = Number(document.getElementById("setQuotaTempPrice").value) || 0;
+    q.pricePermanent = Number(document.getElementById("setQuotaPermPrice").value) || 0;
+    q.tempDurationDays = Number(document.getElementById("setQuotaDays").value) || 0;
+    wn.maxWarn = Number(document.getElementById("setMaxWarn").value) || 1;
+    await saveSettingsWithConfirmation("saveGeneralStatus");
+    renderSidebar();
+    resetInactivityTimer();
+  });
+};
+
+function viewSettingsGithub() {
+  const gh = state.settings.github;
+  const ghr = state.settings.githubRoles;
+  return `
+    <div class="view">
+      ${sectionHead("Admin · GitHub", "Dua database terpisah, sama seperti script bot", "Mengikuti arsitektur script bot Telegram asli: Owner DB/apikey/kuota/warn/pengaturan disimpan di satu repo, Role DB disimpan di repo terpisah.", true)}
+
+      <div class="panel">
+        <div class="panel-title">Database Utama (Owner DB, Apikey, Kuota, Warn, Pengaturan)</div>
+        <p class="desc" style="margin-bottom:14px;">Klik "Simpan Konfigurasi" dulu setelah isi repo/token. Setelah tersimpan, setiap ada perubahan di Owner DB/Apikey/Kuota/Warn/Pengaturan akan otomatis ke-push ke repo ini. Token disimpan apa adanya di storage panel ini — jangan pakai token yang pernah bocor.</p>
+        <div class="grid-2">
+          <label class="field"><span>Repo (owner/nama-repo)</span><input class="input" id="ghRepo" value="${esc(gh.repo)}" placeholder="username/worldmarket-data" /></label>
+          <label class="field"><span>Branch</span><input class="input" id="ghBranch" value="${esc(gh.branch)}" /></label>
+          <label class="field"><span>Personal access token</span><input class="input" type="password" id="ghToken" value="${esc(gh.token)}" placeholder="ghp_…" /></label>
+          <label class="field"><span>Path file</span><input class="input" id="ghPath" value="${esc(gh.path)}" /></label>
+        </div>
+        <div class="form-row" style="margin-top:10px;">
+          <button class="btn btn-violet" id="ghSaveConfigBtn">Simpan Konfigurasi</button>
+          <button class="btn btn-secondary" id="ghBackupBtn">Backup sekarang ke GitHub</button>
+        </div>
+        <div id="ghSaveStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
+        <div id="ghBackupStatus" class="muted" style="font-size:13px; margin-top:4px;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Database Role (Role DB) — repo terpisah</div>
+        <p class="desc" style="margin-bottom:14px;">Persis seperti script bot asli: Role DB disimpan di repo GitHub-nya sendiri, terpisah dari database utama. Klik "Simpan Konfigurasi" dulu, setelah itu setiap perubahan di Role DB otomatis ke-push ke sini.</p>
+        <div class="grid-2">
+          <label class="field"><span>Repo (owner/nama-repo)</span><input class="input" id="ghrRepo" value="${esc(ghr.repo)}" placeholder="username/khusus-role" /></label>
+          <label class="field"><span>Branch</span><input class="input" id="ghrBranch" value="${esc(ghr.branch)}" /></label>
+          <label class="field"><span>Personal access token</span><input class="input" type="password" id="ghrToken" value="${esc(ghr.token)}" placeholder="ghp_…" /></label>
+          <label class="field"><span>Path file</span><input class="input" id="ghrPath" value="${esc(ghr.path)}" /></label>
+        </div>
+        <div class="form-row" style="margin-top:10px;">
+          <button class="btn btn-violet" id="ghrSaveConfigBtn">Simpan Konfigurasi</button>
+          <button class="btn btn-secondary" id="ghrBackupBtn">Backup sekarang ke GitHub</button>
+        </div>
+        <div id="ghrSaveStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
+        <div id="ghrBackupStatus" class="muted" style="font-size:13px; margin-top:4px;"></div>
+      </div>
+    </div>`;
+}
+bindHandlers["settings-github"] = () => {
+  const gh = state.settings.github;
+  const ghr = state.settings.githubRoles;
+
+  document.getElementById("ghSaveConfigBtn").addEventListener("click", async () => {
+    gh.repo = document.getElementById("ghRepo").value.trim();
+    gh.branch = document.getElementById("ghBranch").value.trim() || "main";
+    gh.token = document.getElementById("ghToken").value.trim();
+    gh.path = document.getElementById("ghPath").value.trim() || "worldmarket-database.json";
+    await saveSettingsWithConfirmation("ghSaveStatus");
+  });
+  document.getElementById("ghBackupBtn").addEventListener("click", async () => {
+    const statusEl = document.getElementById("ghBackupStatus");
+    if (!gh.repo || !gh.token) { statusEl.textContent = "Isi & simpan konfigurasi (repo + token) dulu."; statusEl.className = "danger-text"; return; }
+    statusEl.textContent = "Menyimpan…"; statusEl.className = "muted";
+    try {
+      let sha; try { const existing = await ghGetFile(gh.repo, gh.branch, gh.token, gh.path); if (existing) sha = existing.sha; } catch {}
+      await ghPutFile(gh.repo, gh.branch, gh.token, gh.path, buildMainDatabaseExport(), sha, "Backup database utama dari WorldMarket Panel");
+      statusEl.textContent = `Berhasil disimpan ke ${gh.repo}/${gh.path}.`; statusEl.className = "ok-text";
+    } catch (e) { statusEl.textContent = "Gagal backup: " + e.message; statusEl.className = "danger-text"; }
+  });
+
+  document.getElementById("ghrSaveConfigBtn").addEventListener("click", async () => {
+    ghr.repo = document.getElementById("ghrRepo").value.trim();
+    ghr.branch = document.getElementById("ghrBranch").value.trim() || "main";
+    ghr.token = document.getElementById("ghrToken").value.trim();
+    ghr.path = document.getElementById("ghrPath").value.trim() || "database/additional/role_db.json";
+    await saveSettingsWithConfirmation("ghrSaveStatus");
+  });
+  document.getElementById("ghrBackupBtn").addEventListener("click", async () => {
+    const statusEl = document.getElementById("ghrBackupStatus");
+    if (!ghr.repo || !ghr.token) { statusEl.textContent = "Isi & simpan konfigurasi (repo + token) dulu."; statusEl.className = "danger-text"; return; }
+    statusEl.textContent = "Menyimpan…"; statusEl.className = "muted";
+    try {
+      let sha; try { const existing = await ghGetFile(ghr.repo, ghr.branch, ghr.token, ghr.path); if (existing) sha = existing.sha; } catch {}
+      await ghPutFile(ghr.repo, ghr.branch, ghr.token, ghr.path, buildRolesExport(), sha, "Backup Role DB dari WorldMarket Panel");
+      statusEl.textContent = `Berhasil disimpan ke ${ghr.repo}/${ghr.path}.`; statusEl.className = "ok-text";
+    } catch (e) { statusEl.textContent = "Gagal backup: " + e.message; statusEl.className = "danger-text"; }
+  });
+};
+
+function viewSettingsPayment() {
+  const p = state.settings.payment || { apiKey: "", addMdrToCustomer: false };
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Payment Gateway", "FR3 NEWERA (QRIS)", "Pembayaran apikey & kuota lewat QRIS, terhubung langsung ke fr3newera.com dari website ini.", true)}
+      <div class="panel">
+        <div class="grid-2">
+          <label class="field"><span>API Key FR3 NEWERA</span><input class="input" type="password" id="payApiKey" value="${esc(p.apiKey || "")}" placeholder="AO_xxxxx…" /></label>
+          <div class="kv" style="border:none; padding-top:22px;"><span>MDR ditanggung customer</span><button class="toggle ${p.addMdrToCustomer ? "on" : ""}" id="payMdrToggle"><span class="toggle-knob"></span></button></div>
+        </div>
+        <div class="form-row" style="margin-top:10px;">
+          <button class="btn btn-violet" id="paySaveBtn">Simpan Konfigurasi</button>
+          <button class="btn btn-secondary" id="payTestBtn">Tes koneksi & cek saldo</button>
+        </div>
+        <div id="paySaveStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
+        <div id="payStatus" class="muted" style="font-size:13px; margin-top:4px;"></div>
+        <p class="desc" style="margin-top:10px;">Kalau API key ini kosong atau tidak valid, pengunjung yang klik beli akan melihat layar penuh "Pembayaran Sedang Bermasalah" — bukan pop-up kecil — supaya jelas kalau toko sedang tidak bisa memproses transaksi.</p>
+        <p class="desc" style="margin-top:10px; color:var(--red);">Perlu diketahui: API key ini tersimpan di dalam file website (berjalan di browser pengunjung). Siapa pun yang membuka "View Source"/DevTools di halaman ini berpotensi melihat nilainya. Simpan hanya kalau kamu memang memilih cara ini dengan sadar akan risikonya.</p>
+      </div>
+    </div>`;
+}
+bindHandlers["settings-payment"] = () => {
+  if (!state.settings.payment) state.settings.payment = { apiKey: "", addMdrToCustomer: false };
+  document.getElementById("payMdrToggle").addEventListener("click", (e) => {
+    state.settings.payment.addMdrToCustomer = !state.settings.payment.addMdrToCustomer;
+    e.currentTarget.classList.toggle("on", state.settings.payment.addMdrToCustomer);
+  });
+  document.getElementById("paySaveBtn").addEventListener("click", async () => {
+    state.settings.payment.apiKey = document.getElementById("payApiKey").value.trim();
+    await saveSettingsWithConfirmation("paySaveStatus");
+  });
+  document.getElementById("payTestBtn").addEventListener("click", async () => {
+    const statusEl = document.getElementById("payStatus");
+    const apikey = document.getElementById("payApiKey").value.trim();
+    if (!apikey) { statusEl.textContent = "Isi API Key dulu."; statusEl.className = "danger-text"; return; }
+    statusEl.textContent = "Menguji koneksi…"; statusEl.className = "muted";
+    try {
+      const res = await fetch(`${FR3_BASE}/check-saldo?apikey=${encodeURIComponent(apikey)}`);
+      const data = await res.json();
+      if (!res.ok || data.status !== 200) throw new Error(data.error || "API key tidak valid.");
+      statusEl.textContent = `Berhasil terhubung. Saldo FR3 NEWERA saat ini: ${rupiah(data.data.saldo)}.`; statusEl.className = "ok-text";
+    } catch (e) { statusEl.textContent = "Gagal terhubung: " + e.message; statusEl.className = "danger-text"; }
+  });
+};
+
+function viewSettingsSupabase() {
+  const sb = state.settings.supabase;
+  const bootstrapFilled = BOOTSTRAP_SUPABASE.url && BOOTSTRAP_SUPABASE.anonKey;
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Database Akun", "Supabase", "Satu tabel generik (kv_store) menyimpan Pengaturan situs, akun user, dan verifikasi Telegram — semuanya otomatis sama untuk semua pengunjung, bukan cuma tersimpan di browser kamu.", true)}
+
+      <div class="panel">
+        <div class="panel-title">Status sinkronisasi ke semua pengunjung</div>
+        ${bootstrapFilled
+          ? `<div class="kv"><span>Bootstrap di source code</span><span class="pill pill-on">sudah diisi</span></div><p class="desc">Pengaturan yang kamu simpan di halaman admin akan otomatis tersedia untuk semua pengunjung sejak mereka pertama buka website ini.</p>`
+          : `<div class="kv"><span>Bootstrap di source code</span><span class="pill pill-danger">belum diisi</span></div><p class="desc">Tanpa ini, pengaturan yang kamu isi di sini <strong>hanya tersimpan di browser kamu sendiri</strong> — pengunjung lain tidak akan otomatis dapat konfigurasi yang sama. Cari <code>BOOTSTRAP_SUPABASE</code> di bagian atas <code>&lt;script&gt;</code> pada file <code>worldmarket-panel.html</code>, isi <code>url</code> dan <code>anonKey</code> dengan nilai di bawah ini, lalu upload ulang file itu ke hosting kamu — cukup sekali saja.</p>`}
+      </div>
+
+      <div class="panel">
+        <div class="grid-2">
+          <label class="field"><span>Project URL</span><input class="input" id="sbUrl" value="${esc(sb.url)}" placeholder="https://xxxx.supabase.co" /></label>
+          <label class="field"><span>Anon public key</span><input class="input" type="password" id="sbKey" value="${esc(sb.anonKey)}" placeholder="eyJhbGciOi…" /></label>
+          <label class="field"><span>Nama tabel</span><input class="input" id="sbTable" value="${esc(sb.table)}" /></label>
+        </div>
+        <div class="form-row" style="margin-top:10px;">
+          <button class="btn btn-violet" id="sbSaveBtn">Simpan Konfigurasi</button>
+          <button class="btn btn-secondary" id="sbTestBtn">Tes koneksi</button>
+        </div>
+        <div id="sbStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">SQL setup</div>
+        <p class="desc" style="margin-bottom:14px;">Cukup satu tabel generik untuk semuanya — jalankan sekali lewat SQL Editor di Supabase:</p>
+        <pre class="mono" style="background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:11.5px; overflow-x:auto; white-space:pre;">create table if not exists public.${esc(sb.table || "kv_store")} (
+  key text primary key,
+  value jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.${esc(sb.table || "kv_store")} enable row level security;
+create policy "wm allow anon" on public.${esc(sb.table || "kv_store")}
+  for all using (true) with check (true);</pre>
+        <p class="desc">Policy di atas sengaja permisif (bisa dibaca & ditulis siapa saja yang tahu anon key) karena panel ini memakai anon key dari sisi browser, bukan autentikasi server sungguhan. Ini trade-off yang disengaja supaya semua pengunjung bisa otomatis mendapat pengaturan terbaru tanpa server tambahan — konsekuensinya, siapa pun yang cukup teliti membuka DevTools bisa melihat (dan secara teknis mengubah) isi tabel ini, termasuk token GitHub, API key payment, dan API key AI yang kamu simpan di Pengaturan. Gunakan token/API key dengan scope seminimal mungkin, dan rotasi berkala.</p>
+        <p class="desc" style="margin-top:10px;">Tabel yang sama dipakai bareng <strong>bot Telegram verifikasi</strong> (folder <code>bot/</code>) lewat key <code>wm_verifications</code> dan <code>wm_bot_groups</code> di dalamnya.</p>
+      </div>
+    </div>`;
+}
+bindHandlers["settings-supabase"] = () => {
+  const sb = state.settings.supabase;
+  document.getElementById("sbSaveBtn").addEventListener("click", async () => {
+    sb.url = document.getElementById("sbUrl").value.trim();
+    sb.anonKey = document.getElementById("sbKey").value.trim();
+    sb.table = document.getElementById("sbTable").value.trim() || "kv_store";
+    await saveSettingsWithConfirmation("sbStatus");
+    render();
+  });
+  document.getElementById("sbTestBtn").addEventListener("click", async () => {
+    const statusEl = document.getElementById("sbStatus");
+    const url = document.getElementById("sbUrl").value.trim();
+    const anonKey = document.getElementById("sbKey").value.trim();
+    const table = document.getElementById("sbTable").value.trim() || "kv_store";
+    if (!url || !anonKey) { statusEl.textContent = "Isi Project URL dan Anon key dulu."; statusEl.className = "danger-text"; return; }
+    statusEl.textContent = "Menguji koneksi…"; statusEl.className = "muted";
+    try {
+      const res = await fetch(`${url}/rest/v1/${table}?select=key&limit=1`, { headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` } });
+      if (!res.ok) {
+        const map = { 401: "Anon key tidak valid.", 403: "Row Level Security menolak akses. Cek policy tabel.", 404: "Tabel tidak ditemukan. Jalankan SQL setup dulu." };
+        throw new Error(map[res.status] || `Gagal terhubung (HTTP ${res.status}).`);
+      }
+      sb.url = url; sb.anonKey = anonKey; sb.table = table;
+      await saveSettingsWithConfirmation("sbStatus");
+      statusEl.textContent = "Berhasil terhubung & konfigurasi tersimpan."; statusEl.className = "ok-text";
+    } catch (e) { statusEl.textContent = "Gagal terhubung: " + e.message; statusEl.className = "danger-text"; }
+  });
+};
+
+function viewSettingsAccounts() {
+  const sb = state.settings.supabase;
+  return `
+    <div class="view">
+      ${sectionHead("Admin · Akun Admin & User", "Kelola akses masuk", "Ganti kredensial admin, dan lihat/hapus akun user yang mendaftar dari halaman publik.", true)}
+      <div class="panel">
+        <div class="panel-title">Akun admin</div>
+        <p class="desc" style="margin-bottom:14px;">Username saat ini: <strong>${esc(state.admin.username)}</strong>. Ganti password secara berkala.</p>
+        <div class="grid-2">
+          <label class="field"><span>Username baru</span><input class="input" id="admNewUser" placeholder="${esc(state.admin.username)}" /></label>
+          <label class="field"><span>Password baru</span><input class="input" type="password" id="admNewPass" placeholder="••••••••" /></label>
+        </div>
+        <div class="field"><span>Password saat ini (konfirmasi)</span><input class="input" type="password" id="admCurrentPass" /></div>
+        <div class="modal-error" id="admError" style="margin:6px 0 0;"></div>
+        <button class="btn btn-secondary" id="admSaveBtn" style="margin-top:10px;">Simpan akun admin</button>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Akun user terdaftar</div>
+        <p class="desc" style="margin-bottom:14px;">Semua akun yang dibuat pengunjung lewat "Masuk / Daftar" di halaman publik${sb.url && sb.anonKey ? " (dari Supabase)" : " (dari penyimpanan lokal)"}.</p>
+        <div id="userListArea"><div class="muted" style="font-size:13px;">Memuat daftar user…</div></div>
+      </div>
+    </div>`;
+}
+bindHandlers["settings-accounts"] = () => {
+  document.getElementById("admSaveBtn").addEventListener("click", () => {
+    const newUser = document.getElementById("admNewUser").value.trim();
+    const newPass = document.getElementById("admNewPass").value;
+    const currentPass = document.getElementById("admCurrentPass").value;
+    const errEl = document.getElementById("admError");
+    if (currentPass !== state.admin.password) { errEl.textContent = "Password saat ini salah."; return; }
+    if (!newUser && !newPass) { errEl.textContent = "Isi username baru atau password baru dulu."; return; }
+    if (newUser) state.admin.username = newUser;
+    if (newPass) state.admin.password = newPass;
+    saveKey("wm:admin", state.admin);
+    errEl.textContent = ""; notify("Akun admin diperbarui.");
+    renderAdminCorner(); render();
+  });
+
+  async function loadAndRenderUserList() {
+    const area = document.getElementById("userListArea");
+    const list = await usersListAll();
+    if (!area) return;
+    area.innerHTML = list.length === 0 ? `<div class="empty">Belum ada user yang mendaftar.</div>` : `
+      <table class="table"><thead><tr><th>Username</th><th>Terdaftar</th><th></th></tr></thead><tbody>
+        ${list.map((u) => `<tr><td class="mono">${esc(u.username)}</td><td class="muted">${fmtDate(u.createdAt)}</td><td><button class="btn btn-ghost btn-danger" data-remove-user="${u.id}">Hapus</button></td></tr>`).join("")}
+      </tbody></table>`;
+    area.querySelectorAll("[data-remove-user]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        try {
+          await usersDelete(btn.dataset.removeUser);
+          if (state.currentUser && state.currentUser.id === btn.dataset.removeUser) state.currentUser = null;
+          notify("Akun user dihapus.");
+          loadAndRenderUserList();
+          renderAdminCorner();
+        } catch (e) { notify("Gagal hapus: " + e.message); }
+      });
+    });
+  }
+  loadAndRenderUserList();
+};
+
+boot();
+</script>
+</body>
+</html>
