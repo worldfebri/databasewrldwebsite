@@ -2060,10 +2060,10 @@ function viewSettingsSupabase() {
         <div id="sbStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
       </div>
 
-      <div class="panel">
+      <div class="panel" id="sqlSetupPanel">
         <div class="panel-title">SQL setup</div>
-        <p class="desc" style="margin-bottom:14px;">Cukup satu tabel generik untuk semuanya — jalankan sekali lewat SQL Editor di Supabase:</p>
-        <pre class="mono" style="background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:11.5px; overflow-x:auto; white-space:pre;">create table if not exists public.${esc(sb.table || "kv_store")} (
+        <p class="desc" style="margin-bottom:14px;">Cukup satu tabel generik untuk semuanya — jalankan sekali lewat SQL Editor di Supabase. Anon key (dipakai browser) sengaja <strong>tidak diizinkan</strong> membuat tabel sendiri (proteksi Supabase), jadi langkah ini memang harus manual sekali di awal:</p>
+        <pre class="mono" id="sqlSetupBlock" style="background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:11.5px; overflow-x:auto; white-space:pre;">create table if not exists public.${esc(sb.table || "kv_store")} (
   key text primary key,
   value jsonb not null,
   updated_at timestamptz not null default now()
@@ -2071,18 +2071,66 @@ function viewSettingsSupabase() {
 alter table public.${esc(sb.table || "kv_store")} enable row level security;
 create policy "wm allow anon" on public.${esc(sb.table || "kv_store")}
   for all using (true) with check (true);</pre>
-        <p class="desc">Policy di atas sengaja permisif (bisa dibaca & ditulis siapa saja yang tahu anon key) karena panel ini memakai anon key dari sisi browser, bukan autentikasi server sungguhan. Ini trade-off yang disengaja supaya semua pengunjung bisa otomatis mendapat pengaturan terbaru tanpa server tambahan — konsekuensinya, siapa pun yang cukup teliti membuka DevTools bisa melihat (dan secara teknis mengubah) isi tabel ini, termasuk token GitHub, API key payment, dan API key AI yang kamu simpan di Pengaturan. Gunakan token/API key dengan scope seminimal mungkin, dan rotasi berkala.</p>
+        <div class="form-row" style="margin-top:10px;">
+          <button class="btn btn-secondary" id="sqlCopyBtn">Salin SQL</button>
+          <button class="btn btn-secondary" id="sqlEditorBtn">Buka SQL Editor Supabase ↗</button>
+        </div>
+        <div id="sqlCopyStatus" class="muted" style="font-size:13px; margin-top:8px;"></div>
+        <p class="desc" style="margin-top:14px;">Policy di atas sengaja permisif (bisa dibaca & ditulis siapa saja yang tahu anon key) karena panel ini memakai anon key dari sisi browser, bukan autentikasi server sungguhan. Ini trade-off yang disengaja supaya semua pengunjung bisa otomatis mendapat pengaturan terbaru tanpa server tambahan — konsekuensinya, siapa pun yang cukup teliti membuka DevTools bisa melihat (dan secara teknis mengubah) isi tabel ini, termasuk token GitHub, API key payment, dan API key AI yang kamu simpan di Pengaturan. Gunakan token/API key dengan scope seminimal mungkin, dan rotasi berkala.</p>
         <p class="desc" style="margin-top:10px;">Tabel yang sama dipakai bareng <strong>bot Telegram verifikasi</strong> (folder <code>bot/</code>) lewat key <code>wm_verifications</code> dan <code>wm_bot_groups</code> di dalamnya.</p>
       </div>
     </div>`;
 }
+function supabaseProjectRef(url) {
+  try { return new URL(url).hostname.split(".")[0] || ""; } catch { return ""; }
+}
 bindHandlers["settings-supabase"] = () => {
   const sb = state.settings.supabase;
+
+  function flashSqlPanel(showCta) {
+    const panel = document.getElementById("sqlSetupPanel");
+    if (!panel) return;
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    panel.style.transition = "box-shadow .3s, border-color .3s";
+    panel.style.boxShadow = "0 0 0 2px var(--red)";
+    panel.style.borderColor = "var(--red)";
+    setTimeout(() => { panel.style.boxShadow = ""; panel.style.borderColor = ""; }, 2200);
+  }
+
+  document.getElementById("sqlCopyBtn").addEventListener("click", async () => {
+    const sqlText = document.getElementById("sqlSetupBlock").textContent;
+    const statusEl = document.getElementById("sqlCopyStatus");
+    try {
+      await navigator.clipboard.writeText(sqlText);
+      statusEl.textContent = "SQL disalin. Tempel di Supabase → SQL Editor → Run."; statusEl.className = "ok-text";
+    } catch {
+      statusEl.textContent = "Gagal menyalin otomatis — seleksi & salin manual dari kotak di atas."; statusEl.className = "danger-text";
+    }
+  });
+  document.getElementById("sqlEditorBtn").addEventListener("click", () => {
+    const url = document.getElementById("sbUrl").value.trim();
+    const ref = supabaseProjectRef(url);
+    const dest = ref ? `https://supabase.com/dashboard/project/${ref}/sql/new` : "https://supabase.com/dashboard";
+    if (!ref) notify("Isi Project URL dulu supaya bisa langsung diarahkan ke project yang benar.");
+    window.open(dest, "_blank", "noopener");
+  });
+
   document.getElementById("sbSaveBtn").addEventListener("click", async () => {
+    const statusEl = document.getElementById("sbStatus");
     sb.url = document.getElementById("sbUrl").value.trim();
     sb.anonKey = document.getElementById("sbKey").value.trim();
     sb.table = document.getElementById("sbTable").value.trim() || "kv_store";
     await saveSettingsWithConfirmation("sbStatus");
+    if (sb.url && sb.anonKey) {
+      try {
+        const res = await fetch(`${sb.url}/rest/v1/${sb.table}?select=key&limit=1`, { headers: { apikey: sb.anonKey, Authorization: `Bearer ${sb.anonKey}` } });
+        if (res.status === 404) {
+          statusEl.textContent = "Tersimpan, tapi tabel belum ada di Supabase. Jalankan SQL setup di bawah dulu."; statusEl.className = "danger-text";
+          flashSqlPanel(true);
+          return;
+        }
+      } catch { /* biarkan pesan sukses save tetap tampil kalau tes gagal karena jaringan */ }
+    }
     render();
   });
   document.getElementById("sbTestBtn").addEventListener("click", async () => {
@@ -2095,13 +2143,18 @@ bindHandlers["settings-supabase"] = () => {
     try {
       const res = await fetch(`${url}/rest/v1/${table}?select=key&limit=1`, { headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` } });
       if (!res.ok) {
-        const map = { 401: "Anon key tidak valid.", 403: "Row Level Security menolak akses. Cek policy tabel.", 404: "Tabel tidak ditemukan. Jalankan SQL setup dulu." };
-        throw new Error(map[res.status] || `Gagal terhubung (HTTP ${res.status}).`);
+        const map = { 401: "Anon key tidak valid.", 403: "Row Level Security menolak akses. Cek policy tabel.", 404: "Tabel tidak ditemukan. Jalankan SQL setup dulu (lihat panel di bawah — klik \"Salin SQL\", lalu \"Buka SQL Editor Supabase\")." };
+        const err = new Error(map[res.status] || `Gagal terhubung (HTTP ${res.status}).`);
+        err.httpStatus = res.status;
+        throw err;
       }
       sb.url = url; sb.anonKey = anonKey; sb.table = table;
       await saveSettingsWithConfirmation("sbStatus");
       statusEl.textContent = "Berhasil terhubung & konfigurasi tersimpan."; statusEl.className = "ok-text";
-    } catch (e) { statusEl.textContent = "Gagal terhubung: " + e.message; statusEl.className = "danger-text"; }
+    } catch (e) {
+      statusEl.textContent = "Gagal terhubung: " + e.message; statusEl.className = "danger-text";
+      if (e.httpStatus === 404) flashSqlPanel(true);
+    }
   });
 };
 
