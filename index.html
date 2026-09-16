@@ -2003,12 +2003,13 @@ bindHandlers["settings-general"] = () => {
 
 function viewSettingsSession() {
   const sl = state.settings.sessionLogin || { enabled: true, videoUrl: "", durationMs: 2500 };
+  const isDataVideo = (sl.videoUrl || "").startsWith("data:video/");
   return `
     <div class="view">
       ${sectionHead("Admin · Sesi & Video Loading", "Auto-login device & video pembuka", "Kalau device (browser) yang sama pernah login sebelumnya, pengunjung akan otomatis diverifikasi ulang tanpa perlu ketik username/password lagi — muncul layar besar \"VERIFIKASI SESI LOGIN SEBELUMNYA\" selama proses cek berlangsung. Setelah login (baik otomatis maupun manual) berhasil diverifikasi, situs bisa menampilkan video (mp4) loading sebelum masuk ke dashboard. Atur videonya di sini.", true)}
       <div class="panel">
         <div class="panel-title">Video loading setelah login berhasil</div>
-        <p class="desc" style="margin-bottom:14px;">Video ini muncul layar penuh sesaat setelah pengunjung berhasil login/verifikasi sesi, sebelum tampilan toko muncul. Isi dengan link video .mp4 langsung (harus link file mp4 yang bisa diakses publik, bukan link halaman/embed). Kosongkan videonya kalau tidak mau pakai video sama sekali — proses login tetap jalan seperti biasa tanpa layar video.</p>
+        <p class="desc" style="margin-bottom:14px;">Video ini muncul layar penuh sesaat setelah pengunjung berhasil login/verifikasi sesi, sebelum tampilan toko muncul. Kosongkan/hapus videonya kalau tidak mau pakai video sama sekali — proses login tetap jalan seperti biasa tanpa layar video.</p>
         <div class="grid-2">
           <label class="field">
             <span>Aktifkan video loading?</span>
@@ -2019,33 +2020,76 @@ function viewSettingsSession() {
           </label>
           <label class="field"><span>Durasi tampil (detik)</span><input class="input" type="number" min="1" step="0.5" id="slDuration" value="${(Number(sl.durationMs) || 2500) / 1000}" /></label>
         </div>
-        <label class="field"><span>Link video (.mp4)</span><input class="input" id="slVideoUrl" value="${esc(sl.videoUrl || "")}" placeholder="https://contoh.com/loading.mp4" /></label>
+        <label class="field">
+          <span>Upload video langsung dari HP/komputer (.mp4)</span>
+          <input class="input" type="file" accept="video/mp4,video/*" id="slVideoFile" />
+        </label>
+        <p class="desc" style="margin:2px 0 10px;">Maksimal <strong>5 MB</strong> dan usahakan durasi pendek (2–5 detik cukup) — videonya disimpan langsung di dalam database situs (base64), jadi kalau terlalu besar bisa bikin situs berat/gagal tersimpan. Kalau video kamu masih kebesaran, kompres dulu pakai aplikasi HP biasa (misalnya fitur "Kompres Video" di galeri, atau convert lewat aplikasi seperti VN/CapCut) sebelum upload.</p>
+        <label class="field">
+          <span>Atau isi link video (.mp4) kalau sudah punya hosting sendiri — opsional</span>
+          <input class="input" id="slVideoUrl" value="${!isDataVideo ? esc(sl.videoUrl || "") : ""}" placeholder="https://contoh.com/loading.mp4" />
+        </label>
         <div id="slPreviewWrap" style="margin-top:10px;">
-          ${sl.videoUrl ? `<video id="slPreview" src="${esc(sl.videoUrl)}" muted loop autoplay playsinline style="width:100%; max-width:340px; border-radius:10px; border:1px solid var(--border);"></video>` : `<div class="muted" style="font-size:13px;" id="slPreviewEmpty">Belum ada video diisi.</div>`}
+          ${sl.videoUrl ? `<video id="slPreview" src="${esc(sl.videoUrl)}" muted loop autoplay playsinline style="width:100%; max-width:340px; border-radius:10px; border:1px solid var(--border);"></video>${isDataVideo ? `<div style="margin-top:6px;"><button class="btn btn-ghost btn-danger" id="slRemoveVideoBtn" type="button">Hapus video terupload</button></div>` : ""}` : `<div class="muted" style="font-size:13px;" id="slPreviewEmpty">Belum ada video diisi.</div>`}
         </div>
+        <div id="slFileStatus" class="muted" style="font-size:12.5px; margin-top:6px;"></div>
         <div class="form-row" style="margin-top:10px;">
           <button class="btn btn-violet" id="slSaveBtn">Simpan Konfigurasi</button>
         </div>
         <div id="slSaveStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
-        <p class="desc" style="margin-top:10px;">Contoh sumber video gratis: upload ke GitHub (raw.githubusercontent.com), Supabase Storage (public bucket), Cloudinary, atau hosting file mp4 lain yang mengizinkan hotlink. Video sebaiknya berdurasi pendek (beberapa detik) dan ukurannya kecil supaya cepat dimuat pengunjung.</p>
       </div>
     </div>`;
 }
 bindHandlers["settings-session"] = () => {
   if (!state.settings.sessionLogin) state.settings.sessionLogin = { enabled: true, videoUrl: "", durationMs: 2500 };
+  const sl = state.settings.sessionLogin;
   const urlInput = document.getElementById("slVideoUrl");
-  const updatePreview = () => {
-    const url = urlInput.value.trim();
+  const fileInput = document.getElementById("slVideoFile");
+  const MAX_VIDEO_BYTES = 5 * 1024 * 1024; // 5 MB — dijaga kecil supaya aman untuk localStorage & database (jsonb)
+  let pendingUploadedVideo = null; // dataURL hasil upload file, menang atas isian link kalau ada
+
+  const renderPreview = (videoSrc, isUploaded) => {
     const wrap = document.getElementById("slPreviewWrap");
-    wrap.innerHTML = url
-      ? `<video id="slPreview" src="${esc(url)}" muted loop autoplay playsinline style="width:100%; max-width:340px; border-radius:10px; border:1px solid var(--border);"></video>`
+    wrap.innerHTML = videoSrc
+      ? `<video id="slPreview" src="${esc(videoSrc)}" muted loop autoplay playsinline style="width:100%; max-width:340px; border-radius:10px; border:1px solid var(--border);"></video>${isUploaded ? `<div style="margin-top:6px;"><button class="btn btn-ghost btn-danger" id="slRemoveVideoBtn" type="button">Hapus video terupload</button></div>` : ""}`
       : `<div class="muted" style="font-size:13px;" id="slPreviewEmpty">Belum ada video diisi.</div>`;
+    const removeBtn = document.getElementById("slRemoveVideoBtn");
+    if (removeBtn) removeBtn.addEventListener("click", () => {
+      pendingUploadedVideo = ""; fileInput.value = "";
+      document.getElementById("slFileStatus").textContent = "Video terupload akan dihapus setelah kamu klik \"Simpan Konfigurasi\".";
+      renderPreview("", false);
+    });
   };
-  urlInput.addEventListener("change", updatePreview);
+
+  urlInput.addEventListener("change", () => {
+    if (urlInput.value.trim()) { pendingUploadedVideo = null; fileInput.value = ""; document.getElementById("slFileStatus").textContent = ""; }
+    renderPreview(urlInput.value.trim(), false);
+  });
+
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files[0];
+    const statusEl = document.getElementById("slFileStatus");
+    if (!file) return;
+    if (!file.type.startsWith("video/")) { statusEl.textContent = "File yang dipilih bukan video. Pilih file .mp4."; fileInput.value = ""; return; }
+    if (file.size > MAX_VIDEO_BYTES) {
+      statusEl.textContent = `File terlalu besar (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimal 5 MB — kompres dulu videonya lalu upload ulang.`;
+      fileInput.value = "";
+      return;
+    }
+    statusEl.textContent = "Memproses video…";
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      pendingUploadedVideo = dataUrl;
+      urlInput.value = "";
+      statusEl.textContent = `Video siap (${(file.size / 1024 / 1024).toFixed(1)} MB). Klik "Simpan Konfigurasi" untuk menyimpannya.`;
+      renderPreview(dataUrl, true);
+    } catch (e) { statusEl.textContent = "Gagal membaca file video: " + e.message; }
+  });
+
   document.getElementById("slSaveBtn").addEventListener("click", async () => {
-    const sl = state.settings.sessionLogin;
     sl.enabled = document.getElementById("slEnabled").value === "1";
-    sl.videoUrl = urlInput.value.trim();
+    if (pendingUploadedVideo !== null) sl.videoUrl = pendingUploadedVideo;
+    else if (urlInput.value.trim()) sl.videoUrl = urlInput.value.trim();
     const durationSec = Number(document.getElementById("slDuration").value);
     sl.durationMs = Number.isFinite(durationSec) && durationSec > 0 ? Math.round(durationSec * 1000) : 2500;
     await saveSettingsWithConfirmation("slSaveStatus");
