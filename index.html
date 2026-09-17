@@ -264,7 +264,7 @@ const DEFAULT_SETTINGS = {
   },
   aiWorld: { enabled: true, requireTrigger: true, triggerKeywords: ["world", "worldmd", "world md", "ai world"], cooldownSeconds: 12 },
   groq: { apiKey: "", model: "openai/gpt-oss-120b" },
-  github: { repo: "", branch: "main", token: "", path: "worldmarket-database.json" },
+  github: { repo: "", branch: "main", token: "", path: "worldmarket-database.json", apikeyDbPath: "database/additional/apikey_db.json", quotaDbPath: "database/additional/quota_extra_db.json" },
   githubRoles: { repo: "", branch: "main", token: "", path: "database/additional/role_db.json" },
   supabase: { url: "", anonKey: "", table: "kv_worldmd" },
   payment: { qrisImage: "", ownerTelegramId: "" },
@@ -529,41 +529,22 @@ function pushShopToKv() {
   kvSet("wm_shop", { owners: state.owners, roles: state.roles, apikeys: state.apikeys, quotas: state.quotas, warns: state.warns, manualOrders: state.manualOrders });
 }
 
-// Mengikuti pola script bot Telegram asli: DUA database GitHub terpisah —
-// satu untuk data utama (owner/apikey/kuota/warn/settings), satu lagi
-// KHUSUS untuk Role DB. Auto-push ke masing-masing repo begitu ada
-// perubahan, kalau repo+token-nya sudah diisi (di luar sinkron Supabase
-// yang sudah ada, sebagai lapisan tambahan mengikuti arsitektur bot lama).
-let _mainGhTimer = null, _rolesGhTimer = null;
-function scheduleMainGithubPush() {
-  const gh = state.settings.github;
-  if (!gh || !gh.repo || !gh.token) return;
-  clearTimeout(_mainGhTimer);
-  _mainGhTimer = setTimeout(async () => {
-    try {
-      let sha; try { const existing = await ghGetFile(gh.repo, gh.branch, gh.token, gh.path); if (existing) sha = existing.sha; } catch {}
-      await ghPutFile(gh.repo, gh.branch, gh.token, gh.path, buildMainDatabaseExport(), sha, "Auto-update database utama dari WorldMarket Panel");
-    } catch (e) { console.warn("Auto-push ke GitHub (utama) gagal:", e.message); }
-  }, 2500);
-}
-function scheduleRolesGithubPush() {
-  const gh = state.settings.githubRoles;
-  if (!gh || !gh.repo || !gh.token) return;
-  clearTimeout(_rolesGhTimer);
-  _rolesGhTimer = setTimeout(async () => {
-    try {
-      let sha; try { const existing = await ghGetFile(gh.repo, gh.branch, gh.token, gh.path); if (existing) sha = existing.sha; } catch {}
-      await ghPutFile(gh.repo, gh.branch, gh.token, gh.path, buildRolesExport(), sha, "Auto-update role database dari WorldMarket Panel");
-    } catch (e) { console.warn("Auto-push ke GitHub (role) gagal:", e.message); }
-  }, 2500);
-}
+// CATATAN PENTING (dihapus atas permintaan admin):
+// Dulu di sini ada scheduleMainGithubPush()/scheduleRolesGithubPush() yang
+// otomatis MENIMPA (overwrite) seluruh file database di GitHub setiap kali
+// ada perubahan apa pun di panel ini — padahal boot() TIDAK PERNAH membaca
+// isi file itu lebih dulu. Itu berbahaya: data asli yang sudah ditulis bot
+// WORLD MD ke GitHub bisa tertimpa data kosong/beda dari browser admin.
+// Sistem itu sudah DIHAPUS. Sekarang GitHub hanya ditulis lewat transaksi
+// aditif yang eksplisit (lihat modul "Apikey DB (GitHub)" & "Quota DB
+// (GitHub)" di bawah — read-modify-write dengan sha, seperti lib/apikeyDb.js
+// di bot asli), atau lewat tombol backup manual yang harus ditekan admin
+// sendiri (Pengaturan > GitHub). Tidak ada lagi auto-overwrite diam-diam.
 const MAIN_DB_KEYS = ["wm:owners", "wm:apikeys", "wm:quotas", "wm:warns", "wm:settings"];
 async function saveKey(key, value) {
   await _rawSaveKey(key, value);
   if (SHOP_KEYS.includes(key)) await pushShopToKv();
   if (key === "wm:settings") await pushSettingsToSupabase();
-  if (MAIN_DB_KEYS.includes(key)) scheduleMainGithubPush();
-  if (key === "wm:roles") scheduleRolesGithubPush();
   return true;
 }
 
@@ -1226,6 +1207,17 @@ function viewApikeysPublic() {
     <div class="view">
       ${sectionHead("Apikey Shop", "Beli apikey", `Harga ${rupiah(s.pricePerUnit)} per unit. 25 apikey pertama tetap gratis per hari sebagai warming up.`)}
       ${promo ? `<div class="promo-banner">📣 ${esc(promo)}</div>` : ""}
+
+      <div class="panel">
+        <div class="panel-title">Cek saldo apikey nomor bot</div>
+        <p class="desc" style="margin-bottom:10px;">Baca langsung dari database GitHub yang dipakai bot WORLD MD — kalau nomornya sudah pernah beli, saldo & sisa masa aktifnya langsung kelihatan di sini, otomatis, tanpa perlu ditanya admin.</p>
+        <div class="form-row">
+          <input class="input" id="akCheckNumber" placeholder="Nomor bot, contoh 6281234567890" />
+          <button class="btn btn-secondary" id="akCheckBtn">Cek saldo</button>
+        </div>
+        <div id="akCheckResult" style="margin-top:10px;"></div>
+      </div>
+
       <div class="form-row">
         ${state.currentUser ? `<div class="price-tag">Beli sebagai: ${esc(state.currentUser.username)}</div>` : `<input class="input" id="akBuyer" placeholder="Nama atau ID kamu" />`}
         <input class="input" id="akBotNumber" placeholder="Nomor bot, contoh 6281234567890" />
@@ -1233,7 +1225,7 @@ function viewApikeysPublic() {
         <div class="price-tag" id="akPrice">${rupiah(s.options[0] * s.pricePerUnit)}</div>
         <button class="btn btn-primary" id="akIssueBtn" ${s.enabled ? "" : "disabled"}>${s.enabled ? "Beli apikey" : "Toko tutup"}</button>
       </div>
-      <p class="desc">Apikey yang dibeli langsung terpasang ke nomor bot yang kamu masukkan — bukan berupa kode yang perlu ditempel manual.</p>
+      <p class="desc">Apikey yang dibeli ditambahkan (aditif) langsung ke saldo nomor bot itu di <code>apikey_db.json</code> — bukan berupa kode yang perlu ditempel manual, dan tidak menghapus saldo yang sudah ada sebelumnya.</p>
       <div id="akResult"></div>
     </div>`;
 }
@@ -1241,6 +1233,25 @@ bindHandlers.apikeys = () => {
   const s = state.settings.apikeyShop;
   const updatePrice = () => { document.getElementById("akPrice").textContent = rupiah(Number(document.getElementById("akAmount").value) * s.pricePerUnit); };
   document.getElementById("akAmount").addEventListener("change", updatePrice);
+
+  document.getElementById("akCheckBtn").addEventListener("click", async () => {
+    const num = document.getElementById("akCheckNumber").value.trim();
+    const box = document.getElementById("akCheckResult");
+    if (!num) { notify("Isi dulu nomor bot yang mau dicek."); return; }
+    box.innerHTML = `<div class="muted">Membaca dari GitHub…</div>`;
+    const res = await getApikeyBalanceRemote(num);
+    if (!res.ok) { box.innerHTML = `<div class="danger-text">Gagal cek: ${esc(res.message)}</div>`; return; }
+    if (!res.found || res.entry.balance <= 0) {
+      box.innerHTML = `<div class="empty">Nomor ini belum punya saldo apikey custom (atau sudah habis/expired).</div>`;
+      return;
+    }
+    box.innerHTML = `<div class="panel"><div class="panel-title">Saldo ditemukan</div>
+      <div>Sisa saldo: <b>${res.entry.balance.toLocaleString("id-ID")}</b> unit</div>
+      <div class="muted">Total pernah dibeli: ${res.entry.totalPurchased.toLocaleString("id-ID")} · Sudah dipakai: ${res.entry.totalUsed.toLocaleString("id-ID")}</div>
+      <div class="muted">Berlaku sampai: ${res.entry.expiresAt ? fmtDate(res.entry.expiresAt) : "—"}</div>
+    </div>`;
+  });
+
   const issueBtn = document.getElementById("akIssueBtn");
   if (issueBtn) issueBtn.addEventListener("click", () => {
     const buyer = state.currentUser ? state.currentUser.username : document.getElementById("akBuyer").value.trim();
@@ -1251,8 +1262,15 @@ bindHandlers.apikeys = () => {
     const price = amount * s.pricePerUnit;
     const onApproved = async () => {
       await refreshManualOrderStatus("");
+      // Setelah admin ACC, saldo SUDAH ditulis ke apikey_db.json di GitHub
+      // (lihat finalizeManualOrder) — di sini kita baca ULANG dari GitHub,
+      // bukan asal nampilin angka `amount`, supaya yang ditampilkan itu
+      // saldo NYATA (termasuk kalau nomor itu sudah punya sisa sebelumnya).
+      const balance = await getApikeyBalanceRemote(botNumber);
       notify("Pembayaran disetujui, apikey terpasang.");
-      document.getElementById("akResult").innerHTML = `<div class="panel"><div class="panel-title">Apikey berhasil dipasang</div><div>Nomor bot <span class="mono">${esc(botNumber)}</span> sekarang punya ${amount} unit apikey aktif.</div></div>`;
+      document.getElementById("akResult").innerHTML = balance.ok && balance.found
+        ? `<div class="panel"><div class="panel-title">Apikey berhasil dipasang</div><div>Nomor bot <span class="mono">${esc(botNumber)}</span> sekarang punya <b>${balance.entry.balance.toLocaleString("id-ID")}</b> unit apikey aktif (berlaku sampai ${fmtDate(balance.entry.expiresAt)}).</div></div>`
+        : `<div class="panel"><div class="panel-title">Disetujui, tapi perlu dicek</div><div>Order sudah di-ACC, tapi saldo di GitHub belum bisa dibaca ulang (${esc(balance.message || "coba cek manual")}). Hubungi admin kalau apikey belum aktif.</div></div>`;
     };
     if (!manualPaymentConfigured()) { showPaymentDownScreen(); return; }
     openManualQrisModal(price, `Apikey ${amount} unit untuk ${botNumber}`, "apikey", { botNumber, amount }, buyer, onApproved);
@@ -1271,9 +1289,16 @@ function viewApikeysAdmin() {
     </div>`;
 }
 bindHandlers["a-apikeys"] = () => {
-  document.querySelectorAll("[data-revoke-key]").forEach((btn) => btn.addEventListener("click", () => {
-    state.apikeys = state.apikeys.filter((k) => k.id !== btn.dataset.revokeKey);
-    saveKey("wm:apikeys", state.apikeys); notify("Apikey dicabut."); render();
+  document.querySelectorAll("[data-revoke-key]").forEach((btn) => btn.addEventListener("click", async () => {
+    const k = state.apikeys.find((x) => x.id === btn.dataset.revokeKey);
+    if (!k) return;
+    if (!confirm(`Cabut ${k.amount} unit dari nomor ${k.botNumber}? Saldo di apikey_db.json (GitHub) juga akan dikurangi.`)) return;
+    notify("Mengurangi saldo di GitHub…");
+    const remote = await revokeApikeyBalanceRemote(k.botNumber, k.amount, `Cabut apikey (record ${k.id})`);
+    state.apikeys = state.apikeys.filter((x) => x.id !== btn.dataset.revokeKey);
+    await saveKey("wm:apikeys", state.apikeys);
+    notify(remote.ok ? "Apikey dicabut & saldo GitHub dikurangi." : `Catatan dihapus, TAPI gagal mengurangi saldo GitHub: ${remote.message}`);
+    render();
   }));
 };
 
@@ -1288,6 +1313,17 @@ function viewQuotasPublic() {
     <div class="view">
       ${sectionHead("Quota Shop", "Beli kuota add owner", `Temp ${rupiah(s.priceTemp)}/kuota (berlaku ${s.tempDurationDays} hari), permanen ${rupiah(s.pricePermanent)}/kuota.`)}
       ${promo ? `<div class="promo-banner">📣 ${esc(promo)}</div>` : ""}
+
+      <div class="panel">
+        <div class="panel-title">Cek kuota yang sudah dibeli</div>
+        <p class="desc" style="margin-bottom:10px;">Baca langsung dari database GitHub — kalau nama/ID ini sudah pernah beli, sisa kuota (permanen + temporary yang masih aktif) langsung kelihatan di sini.</p>
+        <div class="form-row">
+          <input class="input" id="qCheckBuyer" placeholder="Nama atau ID pembeli" value="${state.currentUser ? esc(state.currentUser.username) : ""}" />
+          <button class="btn btn-secondary" id="qCheckBtn">Cek kuota</button>
+        </div>
+        <div id="qCheckResult" style="margin-top:10px;"></div>
+      </div>
+
       <div class="form-row">
         ${state.currentUser ? `<div class="price-tag">Beli sebagai: ${esc(state.currentUser.username)}</div>` : `<input class="input" id="qBuyer" placeholder="Nama atau ID kamu" />`}
         <select class="input" id="qType"><option value="temp">Temporary</option><option value="permanent">Permanent</option></select>
@@ -1295,6 +1331,7 @@ function viewQuotasPublic() {
         <div class="price-tag" id="qPrice">${rupiah(s.priceTemp * s.tempOptions[0])}</div>
         <button class="btn btn-primary" id="qBuyBtn" ${s.enabled ? "" : "disabled"}>${s.enabled ? "Beli kuota" : "Toko tutup"}</button>
       </div>
+      <p class="desc">Kuota yang dibeli ditambahkan (aditif) ke saldo kuota GitHub kamu — tidak menghapus kuota yang sudah ada sebelumnya.</p>
       <div id="qResult"></div>
     </div>`;
 }
@@ -1305,6 +1342,26 @@ bindHandlers.quotas = () => {
   const updatePrice = () => { const unit = typeSel.value === "temp" ? s.priceTemp : s.pricePermanent; priceEl.textContent = rupiah(unit * Number(amtSel.value)); };
   typeSel.addEventListener("change", refreshAmountOptions);
   amtSel.addEventListener("change", updatePrice);
+
+  document.getElementById("qCheckBtn").addEventListener("click", async () => {
+    const key = document.getElementById("qCheckBuyer").value.trim();
+    const box = document.getElementById("qCheckResult");
+    if (!key) { notify("Isi dulu nama/ID pembeli."); return; }
+    box.innerHTML = `<div class="muted">Membaca dari GitHub…</div>`;
+    const res = await getQuotaBalanceRemote(key);
+    if (!res.ok) { box.innerHTML = `<div class="danger-text">Gagal cek: ${esc(res.message)}</div>`; return; }
+    if (!res.found || res.extraTotal <= 0) {
+      box.innerHTML = `<div class="empty">Belum ada kuota aktif untuk nama/ID ini.</div>`;
+      return;
+    }
+    const activeTemp = res.entry.temp.filter((b) => b.expiresAt > Date.now());
+    box.innerHTML = `<div class="panel"><div class="panel-title">Kuota ditemukan</div>
+      <div>Total kuota aktif: <b>${res.extraTotal.toLocaleString("id-ID")}</b></div>
+      <div class="muted">Permanen: ${res.entry.permanent.toLocaleString("id-ID")} · Temporary aktif: ${activeTemp.length} batch</div>
+      ${activeTemp.map((b) => `<div class="muted">• ${b.amount} kuota, berlaku sampai ${fmtDate(b.expiresAt)}</div>`).join("")}
+    </div>`;
+  });
+
   const buyBtn = document.getElementById("qBuyBtn");
   if (buyBtn) buyBtn.addEventListener("click", () => {
     const buyer = state.currentUser ? state.currentUser.username : document.getElementById("qBuyer").value.trim();
@@ -1313,9 +1370,14 @@ bindHandlers.quotas = () => {
     const price = unit * amount;
     const onApproved = async () => {
       await refreshManualOrderStatus("");
-      const rec = state.quotas.find((qq) => qq.buyer === buyer && qq.type === type && qq.amount === amount) || {};
+      // Saldo NYATA sudah ditulis ke quota_extra_db.json di GitHub saat admin
+      // ACC (lihat finalizeManualOrder) — baca ulang dari sana, bukan cuma
+      // cari-cari catatan lokal seperti sebelumnya.
+      const balance = await getQuotaBalanceRemote(buyer);
       notify(`Pembayaran disetujui, kuota ${type} x${amount} diterbitkan.`);
-      document.getElementById("qResult").innerHTML = `<div class="panel"><div class="panel-title">Kuota kamu</div><div>${type} × ${amount} — ${rec.expiresAt ? "berlaku sampai " + fmtDate(rec.expiresAt) : "tanpa batas waktu"}</div></div>`;
+      document.getElementById("qResult").innerHTML = balance.ok && balance.found
+        ? `<div class="panel"><div class="panel-title">Kuota kamu</div><div>Total kuota aktif sekarang: <b>${balance.extraTotal.toLocaleString("id-ID")}</b> (permanen ${balance.entry.permanent.toLocaleString("id-ID")})</div></div>`
+        : `<div class="panel"><div class="panel-title">Disetujui, tapi perlu dicek</div><div>Order sudah di-ACC, tapi saldo belum bisa dibaca ulang (${esc(balance.message || "coba cek manual")}). Hubungi admin kalau kuota belum aktif.</div></div>`;
     };
     if (!manualPaymentConfigured()) { showPaymentDownScreen(); return; }
     openManualQrisModal(price, `Kuota ${type} x${amount}`, "quota", { type, amount }, buyer, onApproved);
@@ -1333,9 +1395,16 @@ function viewQuotasAdmin() {
     </div>`;
 }
 bindHandlers["a-quotas"] = () => {
-  document.querySelectorAll("[data-remove-quota]").forEach((btn) => btn.addEventListener("click", () => {
-    state.quotas = state.quotas.filter((q) => q.id !== btn.dataset.removeQuota);
-    saveKey("wm:quotas", state.quotas); notify("Kuota dihapus."); render();
+  document.querySelectorAll("[data-remove-quota]").forEach((btn) => btn.addEventListener("click", async () => {
+    const q = state.quotas.find((x) => x.id === btn.dataset.removeQuota);
+    if (!q) return;
+    if (!confirm(`Hapus ${q.amount} kuota (${q.type}) milik ${q.buyer}? Saldo di GitHub juga akan dikurangi.`)) return;
+    notify("Mengurangi saldo di GitHub…");
+    const remote = await revokeQuotaBalanceRemote(q.buyer, q.type, q.amount, `Hapus quota (record ${q.id})`);
+    state.quotas = state.quotas.filter((x) => x.id !== btn.dataset.removeQuota);
+    await saveKey("wm:quotas", state.quotas);
+    notify(remote.ok ? "Kuota dihapus & saldo GitHub dikurangi." : `Catatan dihapus, TAPI gagal mengurangi saldo GitHub: ${remote.message}`);
+    render();
   }));
 };
 
@@ -1638,7 +1707,12 @@ async function ghPutFile(repo, branch, token, path, contentText, sha, message) {
   const body = { message: message || "Update dari WorldMarket Panel", content: b64EncodeUnicode(contentText), branch: branch || "main" };
   if (sha) body.sha = sha;
   const res = await fetch(url, { method: "PUT", headers, body: JSON.stringify(body) });
-  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || `Gagal menyimpan file (${res.status})`); }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const e = new Error(err.message || `Gagal menyimpan file (${res.status})`);
+    e.status = res.status; // dipakai buat deteksi konflik (409) -> retry baca ulang, bukan timpa paksa
+    throw e;
+  }
   return res.json();
 }
 function buildDatabaseExport() {
@@ -1649,6 +1723,321 @@ function buildMainDatabaseExport() {
 }
 function buildRolesExport() {
   return JSON.stringify({ roles: state.roles, exportedAt: now() }, null, 2);
+}
+
+// ---------------------------------------------------------------------------
+// Apikey DB & Quota DB (GitHub) — INI SUMBER DATA ASLI.
+//
+// Berbeda dari buildMainDatabaseExport/buildRolesExport di atas (yang cuma
+// dipakai tombol Backup manual, dan MENIMPA SELURUH file dengan snapshot
+// state lokal), dua modul di bawah ini TIDAK PERNAH menimpa seluruh file.
+// Pola tiap transaksi persis seperti lib/apikeyDb.js di bot WORLD MD asli:
+//   1) BACA dulu file yang sudah ada di GitHub (kalau belum ada -> mulai
+//      dari database kosong, BUKAN error).
+//   2) UBAH cuma bagian yang relevan (tambah saldo 1 nomor bot / 1 pembeli).
+//   3) TULIS balik pakai `sha` hasil baca tadi, supaya GitHub MENOLAK kalau
+//      ternyata sudah ada yang menulis lebih dulu (409) -> diulang dari
+//      langkah 1 (baca ulang, sha terbaru), bukan dipaksa timpa.
+// Ini yang bikin "apikey/kuota yang sudah terbeli/terpasang" di GitHub tetap
+// aman dan otomatis terbaca oleh website ini maupun oleh bot WORLD MD.
+// ---------------------------------------------------------------------------
+
+const DEFAULT_APIKEY_DB_PATH = "database/additional/apikey_db.json";
+const DEFAULT_QUOTA_DB_PATH = "database/additional/quota_extra_db.json";
+const APIKEY_VALIDITY_MS = 30 * 24 * 60 * 60 * 1000; // sama seperti lib/apikeyDb.js: saldo custom aktif 30 hari sejak topup terakhir
+
+function normalizeBotNumber(n) {
+  let d = String(n || "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.startsWith("0")) d = "62" + d.slice(1);
+  else if (d.startsWith("8")) d = "62" + d;
+  return d;
+}
+
+// Repo/branch/token SAMA PERSIS dengan Pengaturan > GitHub (database utama);
+// path file-nya saja yang beda per jenis data — sama seperti komentar asli
+// di lib/apikeyDb.js bot ("tidak perlu bikin repo baru").
+function apikeyGithubSettings() {
+  const gh = state.settings.github || {};
+  return { repo: (gh.repo || "").trim(), branch: (gh.branch || "main").trim() || "main", token: (gh.token || "").trim(), path: (gh.apikeyDbPath || DEFAULT_APIKEY_DB_PATH).trim() };
+}
+function quotaGithubSettings() {
+  const gh = state.settings.github || {};
+  return { repo: (gh.repo || "").trim(), branch: (gh.branch || "main").trim() || "main", token: (gh.token || "").trim(), path: (gh.quotaDbPath || DEFAULT_QUOTA_DB_PATH).trim() };
+}
+
+async function ghGetJson(repo, branch, token, path) {
+  // null = file belum pernah ada di repo (404) -> dianggap database kosong,
+  // BUKAN error, dan BUKAN alasan untuk menimpa apa pun.
+  const file = await ghGetFile(repo, branch, token, path);
+  if (!file) return { data: null, sha: null };
+  try { return { data: JSON.parse(file.text), sha: file.sha }; }
+  catch { return { data: null, sha: file.sha }; }
+}
+
+function ensureApikeyEntryShape(entry) {
+  const out = entry && typeof entry === "object" ? { ...entry } : {};
+  out.balance = Number.isFinite(Number(out.balance)) ? Math.max(0, Number(out.balance)) : 0;
+  out.totalPurchased = Number.isFinite(Number(out.totalPurchased)) ? Math.max(0, Number(out.totalPurchased)) : 0;
+  out.totalUsed = Number.isFinite(Number(out.totalUsed)) ? Math.max(0, Number(out.totalUsed)) : 0;
+  out.expiresAt = out.expiresAt || null;
+  if (out.expiresAt && Date.now() > new Date(out.expiresAt).getTime()) { out.balance = 0; out.expiresAt = null; }
+  out.updatedAt = out.updatedAt || null;
+  return out;
+}
+
+// Baca saldo apikey APA ADANYA dari GitHub — dipakai untuk "Cek Saldo" dan
+// untuk menampilkan berapa apikey yang sudah terbeli/terpasang kalau file-
+// nya (dan nomor botnya) memang sudah ada di repo.
+async function getApikeyBalanceRemote(botNumber) {
+  const cfg = apikeyGithubSettings();
+  const n = normalizeBotNumber(botNumber);
+  if (!cfg.repo) return { ok: false, message: "Repo GitHub database utama belum diisi di Pengaturan > GitHub." };
+  if (!n) return { ok: false, message: "Nomor bot tidak valid." };
+  try {
+    const { data } = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path);
+    const found = !!(data && data.numbers && data.numbers[n]);
+    const entry = ensureApikeyEntryShape(data && data.numbers ? data.numbers[n] : null);
+    return { ok: true, entry, found };
+  } catch (e) { return { ok: false, message: e.message }; }
+}
+
+// Tambah saldo apikey (ADITIF, bukan overwrite) untuk 1 nomor bot — dipanggil
+// SEKALI saat admin nge-ACC order apikey. Kalau nomor itu sudah punya sisa
+// saldo di GitHub, qty baru DITAMBAHKAN ke situ. Retry otomatis kalau ada
+// konflik penulisan (409 — ada perubahan lain di antara baca & tulis).
+async function addApikeyBalanceRemote(botNumber, qty, commitMessage, retries) {
+  retries = retries || 3;
+  const cfg = apikeyGithubSettings();
+  const n = normalizeBotNumber(botNumber);
+  const amount = Math.max(1, Number(qty || 0));
+  if (!cfg.repo) return { ok: false, message: "Repo GitHub database utama belum diisi di Pengaturan > GitHub." };
+  if (!cfg.token) return { ok: false, message: "Token GitHub belum diisi/salah di Pengaturan > GitHub (butuh izin Contents: Read & Write)." };
+  if (!n) return { ok: false, message: "Nomor bot tidak valid." };
+
+  for (let i = 0; i < retries; i++) {
+    let cur;
+    try { cur = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path); }
+    catch (e) { return { ok: false, message: "Gagal baca apikey DB: " + e.message }; }
+
+    const db = cur.data && typeof cur.data === "object" ? { ...cur.data } : { version: 1, numbers: {} };
+    db.numbers = db.numbers && typeof db.numbers === "object" ? { ...db.numbers } : {};
+    const entry = ensureApikeyEntryShape(db.numbers[n]);
+    entry.balance += amount;
+    entry.totalPurchased += amount;
+    entry.expiresAt = new Date(Date.now() + APIKEY_VALIDITY_MS).toISOString();
+    entry.updatedAt = new Date().toISOString();
+    db.numbers[n] = entry;
+    db.updatedAt = new Date().toISOString();
+
+    try {
+      await ghPutFile(cfg.repo, cfg.branch, cfg.token, cfg.path, JSON.stringify(db, null, 2), cur.sha, commitMessage || `Topup apikey balance: ${n} +${amount}`);
+      return { ok: true, entry };
+    } catch (e) {
+      if (e.status === 409) continue; // ada yang nulis duluan -> ulang baca sha terbaru, bukan timpa paksa
+      return { ok: false, message: e.message };
+    }
+  }
+  return { ok: false, message: "Gagal update apikey DB setelah beberapa kali percobaan (bentrok terus-menerus, coba lagi)." };
+}
+
+// Pindahin SELURUH saldo custom (apa adanya) dari satu nomor bot ke nomor
+// bot lain di apikey_db.json — persis seperti transferApikeyBalance() di
+// lib/apikeyDb.js pada bot. Nomor tujuan yang sudah punya sisa saldo akan
+// DITAMBAHKAN (aditif, bukan ketimpa); nomor lama otomatis jadi 0.
+async function transferApikeyBalanceRemote(oldBotNumber, newBotNumber, commitMessage, retries) {
+  retries = retries || 3;
+  const cfg = apikeyGithubSettings();
+  const oldN = normalizeBotNumber(oldBotNumber);
+  const newN = normalizeBotNumber(newBotNumber);
+  if (!cfg.repo) return { ok: false, message: "Repo GitHub database utama belum diisi di Pengaturan > GitHub." };
+  if (!cfg.token) return { ok: false, message: "Token GitHub belum diisi/salah di Pengaturan > GitHub." };
+  if (!oldN) return { ok: false, message: "Nomor bot LAMA tidak valid." };
+  if (!newN) return { ok: false, message: "Nomor bot BARU tidak valid." };
+  if (oldN === newN) return { ok: false, message: "Nomor lama dan nomor baru sama, tidak ada yang perlu dipindah." };
+
+  for (let i = 0; i < retries; i++) {
+    let cur;
+    try { cur = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path); }
+    catch (e) { return { ok: false, message: "Gagal baca apikey DB: " + e.message }; }
+
+    const db = cur.data && typeof cur.data === "object" ? { ...cur.data } : { version: 1, numbers: {} };
+    db.numbers = db.numbers && typeof db.numbers === "object" ? { ...db.numbers } : {};
+    const oldEntry = ensureApikeyEntryShape(db.numbers[oldN]);
+    const newEntry = ensureApikeyEntryShape(db.numbers[newN]);
+    const movedAmount = oldEntry.balance;
+    if (movedAmount <= 0) return { ok: false, message: "Nomor lama itu belum punya sisa saldo apikey yang bisa dipindah." };
+
+    newEntry.balance += movedAmount;
+    const oldExp = oldEntry.expiresAt ? new Date(oldEntry.expiresAt).getTime() : 0;
+    const newExp = newEntry.expiresAt ? new Date(newEntry.expiresAt).getTime() : 0;
+    newEntry.expiresAt = new Date(Math.max(oldExp, newExp)).toISOString();
+    newEntry.updatedAt = new Date().toISOString();
+    oldEntry.balance = 0;
+    oldEntry.expiresAt = null;
+    oldEntry.updatedAt = new Date().toISOString();
+    db.numbers[oldN] = oldEntry;
+    db.numbers[newN] = newEntry;
+    db.updatedAt = new Date().toISOString();
+
+    try {
+      await ghPutFile(cfg.repo, cfg.branch, cfg.token, cfg.path, JSON.stringify(db, null, 2), cur.sha, commitMessage || `Pindah apikey: ${oldN} -> ${newN} (${movedAmount})`);
+      return { ok: true, movedAmount, oldNumber: oldN, newNumber: newN };
+    } catch (e) {
+      if (e.status === 409) continue;
+      return { ok: false, message: e.message };
+    }
+  }
+  return { ok: false, message: "Gagal pindahin saldo apikey setelah beberapa kali percobaan (bentrok terus-menerus, coba lagi)." };
+}
+
+// Kurangi saldo apikey (dipakai tombol "Cabut" di admin) — supaya mencabut
+// apikey di website ini beneran ngurangin saldo di apikey_db.json, bukan
+// cuma menghapus baris riwayat lokal sementara saldo asli tetap utuh.
+async function revokeApikeyBalanceRemote(botNumber, amount, commitMessage, retries) {
+  retries = retries || 3;
+  const cfg = apikeyGithubSettings();
+  const n = normalizeBotNumber(botNumber);
+  const qty = Math.max(0, Number(amount || 0));
+  if (!cfg.repo || !cfg.token) return { ok: false, message: "Repo/token GitHub database utama belum diisi." };
+  if (!n || qty <= 0) return { ok: true, entry: null, skipped: true };
+  for (let i = 0; i < retries; i++) {
+    let cur;
+    try { cur = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path); }
+    catch (e) { return { ok: false, message: "Gagal baca apikey DB: " + e.message }; }
+    const db = cur.data && typeof cur.data === "object" ? { ...cur.data } : { version: 1, numbers: {} };
+    db.numbers = db.numbers && typeof db.numbers === "object" ? { ...db.numbers } : {};
+    const entry = ensureApikeyEntryShape(db.numbers[n]);
+    entry.balance = Math.max(0, entry.balance - qty);
+    entry.updatedAt = new Date().toISOString();
+    db.numbers[n] = entry;
+    db.updatedAt = new Date().toISOString();
+    try {
+      await ghPutFile(cfg.repo, cfg.branch, cfg.token, cfg.path, JSON.stringify(db, null, 2), cur.sha, commitMessage || `Cabut apikey: ${n} -${qty}`);
+      return { ok: true, entry };
+    } catch (e) {
+      if (e.status === 409) continue;
+      return { ok: false, message: e.message };
+    }
+  }
+  return { ok: false, message: "Gagal mencabut apikey setelah beberapa kali percobaan (bentrok terus-menerus, coba lagi)." };
+}
+
+// ---- Quota DB (GitHub) — pola read-modify-write yang sama, tapi per
+// "buyer" (identitas akun/nama pembeli di website ini). CATATAN: bot
+// WhatsApp/Telegram kamu (telegram_bot/quotaStore.js) saat ini menyimpan
+// kuota di filesystem LOKAL server bot, per Telegram user_id — bukan di
+// GitHub — sehingga browser statis ini tidak bisa langsung menulis ke sana.
+// File quota_extra_db.json ini jadi sumber data yang SAH untuk kuota yang
+// dibeli lewat WEBSITE. Supaya bot juga otomatis membaca angka yang sama
+// (bukan cuma tercatat di website), sambungkan bot ke file GitHub yang
+// sama ini lewat modul bot/lib/quotaGithubDb.js yang disertakan di paket.
+function ensureQuotaEntryShape(entry) {
+  const out = entry && typeof entry === "object" ? { ...entry } : {};
+  out.permanent = Number.isFinite(Number(out.permanent)) ? Math.max(0, Number(out.permanent)) : 0;
+  const rawTemp = Array.isArray(out.temp) ? out.temp.filter((b) => b && typeof b === "object") : [];
+  out.temp = rawTemp
+    .map((b) => ({ id: String(b.id || uid()), amount: Math.max(0, Number(b.amount || 0)), createdAt: Number(b.createdAt || now()), expiresAt: Number(b.expiresAt || 0) }))
+    .filter((b) => b.amount > 0);
+  out.updatedAt = out.updatedAt || null;
+  return out;
+}
+function quotaExtraTotal(entry) {
+  const t = Date.now();
+  return entry.permanent + entry.temp.filter((b) => b.expiresAt > t).reduce((a, b) => a + b.amount, 0);
+}
+async function getQuotaBalanceRemote(buyerKey) {
+  const cfg = quotaGithubSettings();
+  const key = String(buyerKey || "").trim().toLowerCase();
+  if (!cfg.repo) return { ok: false, message: "Repo GitHub database utama belum diisi di Pengaturan > GitHub." };
+  if (!key) return { ok: false, message: "Identitas pembeli tidak valid." };
+  try {
+    const { data } = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path);
+    const found = !!(data && data.users && data.users[key]);
+    const entry = ensureQuotaEntryShape(data && data.users ? data.users[key] : null);
+    return { ok: true, entry, extraTotal: quotaExtraTotal(entry), found };
+  } catch (e) { return { ok: false, message: e.message }; }
+}
+async function addQuotaBalanceRemote(buyerKey, type, qty, durationDays, commitMessage, retries) {
+  retries = retries || 3;
+  const cfg = quotaGithubSettings();
+  const key = String(buyerKey || "").trim().toLowerCase();
+  const amount = Math.max(1, Number(qty || 0));
+  if (!cfg.repo) return { ok: false, message: "Repo GitHub database utama belum diisi di Pengaturan > GitHub." };
+  if (!cfg.token) return { ok: false, message: "Token GitHub belum diisi/salah di Pengaturan > GitHub (butuh izin Contents: Read & Write)." };
+  if (!key) return { ok: false, message: "Identitas pembeli tidak valid." };
+
+  for (let i = 0; i < retries; i++) {
+    let cur;
+    try { cur = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path); }
+    catch (e) { return { ok: false, message: "Gagal baca quota DB: " + e.message }; }
+
+    const db = cur.data && typeof cur.data === "object" ? { ...cur.data } : { version: 1, users: {} };
+    db.users = db.users && typeof db.users === "object" ? { ...db.users } : {};
+    const entry = ensureQuotaEntryShape(db.users[key]);
+    if (type === "permanent") {
+      entry.permanent += amount;
+    } else {
+      entry.temp.push({ id: uid(), amount, createdAt: now(), expiresAt: now() + Math.max(1, Number(durationDays || 20)) * 86400000 });
+    }
+    entry.updatedAt = new Date().toISOString();
+    db.users[key] = entry;
+    db.updatedAt = new Date().toISOString();
+
+    try {
+      await ghPutFile(cfg.repo, cfg.branch, cfg.token, cfg.path, JSON.stringify(db, null, 2), cur.sha, commitMessage || `Topup quota: ${key} (${type}) +${amount}`);
+      return { ok: true, entry, extraTotal: quotaExtraTotal(entry) };
+    } catch (e) {
+      if (e.status === 409) continue;
+      return { ok: false, message: e.message };
+    }
+  }
+  return { ok: false, message: "Gagal update quota DB setelah beberapa kali percobaan (bentrok terus-menerus, coba lagi)." };
+}
+
+// Kurangi kuota (dipakai tombol "Hapus" di admin). Diambil dari batch
+// permanent dulu (kalau type diketahui) supaya konsisten dengan catatan
+// transaksi lokal; sisanya diambil dari batch temp yang masih aktif.
+async function revokeQuotaBalanceRemote(buyerKey, type, amount, commitMessage, retries) {
+  retries = retries || 3;
+  const cfg = quotaGithubSettings();
+  const key = String(buyerKey || "").trim().toLowerCase();
+  let qty = Math.max(0, Number(amount || 0));
+  if (!cfg.repo || !cfg.token) return { ok: false, message: "Repo/token GitHub database utama belum diisi." };
+  if (!key || qty <= 0) return { ok: true, entry: null, skipped: true };
+  for (let i = 0; i < retries; i++) {
+    let cur;
+    try { cur = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path); }
+    catch (e) { return { ok: false, message: "Gagal baca quota DB: " + e.message }; }
+    const db = cur.data && typeof cur.data === "object" ? { ...cur.data } : { version: 1, users: {} };
+    db.users = db.users && typeof db.users === "object" ? { ...db.users } : {};
+    const entry = ensureQuotaEntryShape(db.users[key]);
+    let remaining = qty;
+    if (type === "permanent") {
+      const take = Math.min(entry.permanent, remaining);
+      entry.permanent -= take; remaining -= take;
+    }
+    if (remaining > 0) {
+      entry.temp.sort((a, b) => b.expiresAt - a.expiresAt); // makan batch yang paling baru dulu, konsisten dgn urutan pembelian terbalik
+      for (const b of entry.temp) {
+        if (remaining <= 0) break;
+        const take = Math.min(b.amount, remaining);
+        b.amount -= take; remaining -= take;
+      }
+      entry.temp = entry.temp.filter((b) => b.amount > 0);
+    }
+    entry.updatedAt = new Date().toISOString();
+    db.users[key] = entry;
+    db.updatedAt = new Date().toISOString();
+    try {
+      await ghPutFile(cfg.repo, cfg.branch, cfg.token, cfg.path, JSON.stringify(db, null, 2), cur.sha, commitMessage || `Hapus quota: ${key} -${qty}`);
+      return { ok: true, entry };
+    } catch (e) {
+      if (e.status === 409) continue;
+      return { ok: false, message: e.message };
+    }
+  }
+  return { ok: false, message: "Gagal menghapus quota setelah beberapa kali percobaan (bentrok terus-menerus, coba lagi)." };
 }
 
 // ---------------------------------------------------------------------------
@@ -1739,19 +2128,48 @@ async function refreshManualOrderStatus(orderId) {
 // ATAU lewat tombol Telegram, lihat catatan finalizeManualOrder yang sama
 // persis di bot/index.js). Ini yang membuat apikey/kuota benar-benar
 // terpasang walau browser pembeli sudah ditutup.
-function finalizeManualOrder(order) {
+// PENTING: ini yang sekarang BENERAN menulis saldo ke database GitHub yang
+// nyata (apikey_db.json / quota_extra_db.json) lewat addApikeyBalanceRemote /
+// addQuotaBalanceRemote — read-modify-write aditif, bukan sekadar catatan
+// lokal seperti sebelumnya. Kalau penulisan ke GitHub gagal (repo/token
+// belum diisi, dsb), order tetap tercatat "approved" di sini TAPI ditandai
+// remoteOk:false supaya admin tahu harus topup manual, bukan pura-pura sukses.
+async function finalizeManualOrder(order) {
   if (order.kind === "apikey") {
-    const record = { id: uid(), buyer: order.buyer, botNumber: order.meta?.botNumber || "", amount: Number(order.meta?.amount || 0), price: order.price, createdAt: now() };
+    const botNumber = order.meta?.botNumber || "";
+    const amount = Number(order.meta?.amount || 0);
+    const remote = await addApikeyBalanceRemote(botNumber, amount, `Topup apikey (order ${order.id}) oleh ${order.buyer}`);
+    const record = {
+      id: uid(), buyer: order.buyer, botNumber, amount, price: order.price, createdAt: now(),
+      remoteOk: remote.ok, remoteMessage: remote.ok ? null : remote.message,
+      balanceAfter: remote.ok ? remote.entry.balance : null,
+    };
     state.apikeys.unshift(record);
-    saveKey("wm:apikeys", state.apikeys);
-    notifyWebhook(`Order apikey baru (QRIS manual): ${record.amount} unit untuk bot ${record.botNumber} oleh ${record.buyer} (${rupiah(record.price)})`);
+    await saveKey("wm:apikeys", state.apikeys);
+    notifyWebhook(remote.ok
+      ? `Order apikey baru (QRIS manual): ${amount} unit untuk bot ${botNumber} oleh ${order.buyer} (${rupiah(order.price)}) — saldo di apikey_db.json sekarang ${remote.entry.balance}.`
+      : `⚠️ Order apikey (QRIS manual) SUDAH di-ACC tapi GAGAL ditulis ke apikey_db.json GitHub: ${remote.message}. Perlu ditopup manual!`);
+    return remote;
   } else if (order.kind === "quota") {
     const type = order.meta?.type || "temp", amount = Number(order.meta?.amount || 0);
     const s = state.settings.quotaShop;
-    const record = { id: uid(), buyer: order.buyer, type, amount, price: order.price, createdAt: now(), expiresAt: type === "temp" ? now() + (s.tempDurationDays || 30) * 86400000 : null };
+    const durationDays = s.tempDurationDays || 20;
+    // Pakai Telegram ID kalau ada (sama seperti key yang dipakai bot di
+    // quotaStore.js) supaya kuota beneran nyambung ke akun Telegram pembeli,
+    // bukan cuma username website.
+    const quotaKey = order.meta?.telegramId || order.buyer;
+    const remote = await addQuotaBalanceRemote(quotaKey, type, amount, durationDays, `Topup quota (order ${order.id}) oleh ${order.buyer}`);
+    const record = {
+      id: uid(), buyer: order.buyer, type, amount, price: order.price, createdAt: now(),
+      expiresAt: type === "temp" ? now() + durationDays * 86400000 : null,
+      remoteOk: remote.ok, remoteMessage: remote.ok ? null : remote.message,
+    };
     state.quotas.unshift(record);
-    saveKey("wm:quotas", state.quotas);
-    notifyWebhook(`Order kuota baru (QRIS manual): ${type} x${amount} oleh ${order.buyer} (${rupiah(order.price)})`);
+    await saveKey("wm:quotas", state.quotas);
+    notifyWebhook(remote.ok
+      ? `Order kuota baru (QRIS manual): ${type} x${amount} oleh ${order.buyer} (${rupiah(order.price)}) — total kuota aktif sekarang ${remote.extraTotal}.`
+      : `⚠️ Order kuota (QRIS manual) SUDAH di-ACC tapi GAGAL ditulis ke quota DB GitHub: ${remote.message}. Perlu ditopup manual!`);
+    return remote;
   }
 }
 
@@ -1767,9 +2185,19 @@ async function decideManualOrder(id, status) {
   order.decidedAt = now();
   order.decidedBy = `admin-website${state.admin?.username ? ":" + state.admin.username : ""}`;
   if (note) order.decidedNote = note;
-  if (status === "approved") finalizeManualOrder(order);
+  let remote = null;
+  if (status === "approved") {
+    notify("Menulis saldo ke database GitHub…");
+    remote = await finalizeManualOrder(order);
+  }
   await saveKey("wm:manualOrders", state.manualOrders);
-  notify(status === "approved" ? "Pesanan disetujui & diterbitkan." : "Pesanan ditolak.");
+  if (status === "approved") {
+    notify(remote && remote.ok
+      ? "Pesanan disetujui & saldo berhasil ditulis ke GitHub."
+      : `Disetujui TAPI GAGAL menulis ke GitHub: ${remote ? remote.message : "?"} — cek Pengaturan > GitHub, lalu topup manual.`);
+  } else {
+    notify("Pesanan ditolak.");
+  }
   render();
 }
 
@@ -2104,18 +2532,21 @@ function viewSettingsGithub() {
       ${sectionHead("Admin · GitHub", "Dua database terpisah, sama seperti script bot", "Mengikuti arsitektur script bot Telegram asli: Owner DB/apikey/kuota/warn/pengaturan disimpan di satu repo, Role DB disimpan di repo terpisah.", true)}
 
       <div class="panel">
-        <div class="panel-title">Database Utama (Owner DB, Apikey, Kuota, Warn, Pengaturan)</div>
-        <p class="desc" style="margin-bottom:14px;">Klik "Simpan Konfigurasi" dulu setelah isi repo/token. Setelah tersimpan, setiap ada perubahan di Owner DB/Apikey/Kuota/Warn/Pengaturan akan otomatis ke-push ke repo ini. Token disimpan apa adanya di storage panel ini — jangan pakai token yang pernah bocor.</p>
+        <div class="panel-title">Database Utama (Owner DB, Pengaturan)</div>
+        <p class="desc" style="margin-bottom:14px;">Klik "Simpan Konfigurasi" dulu setelah isi repo/token. Repo+token yang sama di sini JUGA dipakai otomatis oleh saldo Apikey &amp; Kuota di bawah (path file diatur terpisah, lihat 2 kolom terakhir) — TIDAK ADA auto-push seluruh database lagi; tombol "Backup sekarang" hanya jalan kalau kamu tekan sendiri. Token disimpan apa adanya di storage panel ini — jangan pakai token yang pernah bocor.</p>
         <div class="grid-2">
           <label class="field"><span>Repo (owner/nama-repo)</span><input class="input" id="ghRepo" value="${esc(gh.repo)}" placeholder="username/worldmarket-data" /></label>
           <label class="field"><span>Branch</span><input class="input" id="ghBranch" value="${esc(gh.branch)}" /></label>
           <label class="field"><span>Personal access token</span><input class="input" type="password" id="ghToken" value="${esc(gh.token)}" placeholder="ghp_…" /></label>
-          <label class="field"><span>Path file</span><input class="input" id="ghPath" value="${esc(gh.path)}" /></label>
+          <label class="field"><span>Path file database utama</span><input class="input" id="ghPath" value="${esc(gh.path)}" /></label>
+          <label class="field"><span>Path Apikey DB (dibaca bot WORLD MD)</span><input class="input" id="ghApikeyDbPath" value="${esc(gh.apikeyDbPath || 'database/additional/apikey_db.json')}" /></label>
+          <label class="field"><span>Path Quota DB</span><input class="input" id="ghQuotaDbPath" value="${esc(gh.quotaDbPath || 'database/additional/quota_extra_db.json')}" /></label>
         </div>
         <div class="form-row" style="margin-top:10px;">
           <button class="btn btn-violet" id="ghSaveConfigBtn">Simpan Konfigurasi</button>
           <button class="btn btn-secondary" id="ghBackupBtn">Backup sekarang ke GitHub</button>
         </div>
+        <p class="desc" style="margin-top:10px;">Path Apikey DB harus SAMA PERSIS dengan <code>apikey_db_path</code> di <code>github_update.json</code> bot kamu (default <code>database/additional/apikey_db.json</code>), supaya pembelian di website ini langsung kebaca bot.</p>
         <div id="ghSaveStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
         <div id="ghBackupStatus" class="muted" style="font-size:13px; margin-top:4px;"></div>
       </div>
@@ -2147,6 +2578,8 @@ bindHandlers["settings-github"] = () => {
     gh.branch = document.getElementById("ghBranch").value.trim() || "main";
     gh.token = document.getElementById("ghToken").value.trim();
     gh.path = document.getElementById("ghPath").value.trim() || "worldmarket-database.json";
+    gh.apikeyDbPath = document.getElementById("ghApikeyDbPath").value.trim() || "database/additional/apikey_db.json";
+    gh.quotaDbPath = document.getElementById("ghQuotaDbPath").value.trim() || "database/additional/quota_extra_db.json";
     await saveSettingsWithConfirmation("ghSaveStatus");
   });
   document.getElementById("ghBackupBtn").addEventListener("click", async () => {
