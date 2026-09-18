@@ -266,6 +266,10 @@ const DEFAULT_SETTINGS = {
   groq: { apiKey: "", model: "openai/gpt-oss-120b" },
   github: { repo: "", branch: "main", token: "", path: "worldmarket-database.json", apikeyDbPath: "database/additional/apikey_db.json", quotaDbPath: "database/additional/quota_extra_db.json" },
   githubRoles: { repo: "", branch: "main", token: "", path: "database/additional/role_db.json" },
+  // Repo/akun/token terpisah KHUSUS kode verifikasi Telegram (opsional).
+  // Kalau repo di sini dikosongkan, otomatis fallback pakai repo/token
+  // Database Utama di atas.
+  githubVerification: { repo: "", branch: "main", token: "", path: "database/additional/verifications_db.json" },
   supabase: { url: "", anonKey: "", table: "kv_worldmd" },
   payment: { qrisImage: "", ownerTelegramId: "" },
   sessionLogin: { enabled: true, videoUrl: "", durationMs: 2500 },
@@ -511,8 +515,20 @@ async function usersListAll() {
 
 const DEFAULT_VERIFICATIONS_DB_PATH = "database/additional/verifications_db.json";
 function verificationGithubSettings() {
+  // Kartu "GitHub Verifikasi Telegram" (Pengaturan > GitHub) punya repo/
+  // akun/token SENDIRI, terpisah dari Database Utama. Kalau kartu itu diisi
+  // (repo-nya tidak kosong), pakai SEPENUHNYA dari situ. Kalau dikosongkan,
+  // fallback 100% ke repo/branch/token Database Utama.
+  const gv = state.settings.githubVerification || {};
   const gh = state.settings.github || {};
-  return { repo: (gh.repo || "").trim(), branch: (gh.branch || "main").trim() || "main", token: (gh.token || "").trim(), path: (gh.verificationsDbPath || DEFAULT_VERIFICATIONS_DB_PATH).trim() };
+  const useSeparate = !!(gv.repo || "").trim();
+  const src = useSeparate ? gv : gh;
+  return {
+    repo: (src.repo || "").trim(),
+    branch: (src.branch || "main").trim() || "main",
+    token: (src.token || "").trim(),
+    path: (gv.path || gh.verificationsDbPath || DEFAULT_VERIFICATIONS_DB_PATH).trim(),
+  };
 }
 
 async function createVerificationRequest(accountId) {
@@ -2624,6 +2640,7 @@ bindHandlers["settings-session"] = () => {
 function viewSettingsGithub() {
   const gh = state.settings.github;
   const ghr = state.settings.githubRoles;
+  const gv = state.settings.githubVerification;
   return `
     <div class="view">
       ${sectionHead("Admin · GitHub", "Dua database terpisah, sama seperti script bot", "Mengikuti arsitektur script bot Telegram asli: Owner DB/apikey/kuota/warn/pengaturan disimpan di satu repo, Role DB disimpan di repo terpisah.", true)}
@@ -2664,11 +2681,29 @@ function viewSettingsGithub() {
         <div id="ghrSaveStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
         <div id="ghrBackupStatus" class="muted" style="font-size:13px; margin-top:4px;"></div>
       </div>
+
+      <div class="panel">
+        <div class="panel-title">GitHub Verifikasi Telegram — repo/akun terpisah (opsional)</div>
+        <p class="desc" style="margin-bottom:14px;">Kode verifikasi Telegram (menu Profil) ditulis ke file <code>${esc(gv.path || DEFAULT_VERIFICATIONS_DB_PATH)}</code>. Repo/token di sini dipakai bot kamu juga — samakan dengan <code>config.js</code> bagian <code>githubVerification</code> (atau <code>github</code> kalau kartu ini dikosongkan). <strong>Kosongkan "Repo" di sini</strong> kalau mau tetap pakai repo/token Database Utama di atas (tidak perlu akun terpisah). Isi kalau mau pakai akun/repo/token GitHub yang BENAR-BENAR berbeda khusus untuk verifikasi.</p>
+        <div class="grid-2">
+          <label class="field"><span>Repo (owner/nama-repo) — kosongkan utk pakai Database Utama</span><input class="input" id="gvRepo" value="${esc(gv.repo)}" placeholder="username/repo-verifikasi (opsional)" /></label>
+          <label class="field"><span>Branch</span><input class="input" id="gvBranch" value="${esc(gv.branch || 'main')}" /></label>
+          <label class="field"><span>Personal access token</span><input class="input" type="password" id="gvToken" value="${esc(gv.token)}" placeholder="ghp_… (wajib kalau Repo diisi)" /></label>
+          <label class="field"><span>Path file kode verifikasi</span><input class="input" id="gvPath" value="${esc(gv.path || DEFAULT_VERIFICATIONS_DB_PATH)}" /></label>
+        </div>
+        <div class="form-row" style="margin-top:10px;">
+          <button class="btn btn-violet" id="gvSaveConfigBtn">Simpan Konfigurasi</button>
+          <button class="btn btn-secondary" id="gvTestBtn">Tes koneksi &amp; buat file kalau belum ada</button>
+        </div>
+        <div id="gvSaveStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
+        <div id="gvTestStatus" class="muted" style="font-size:13px; margin-top:4px;"></div>
+      </div>
     </div>`;
 }
 bindHandlers["settings-github"] = () => {
   const gh = state.settings.github;
   const ghr = state.settings.githubRoles;
+  const gv = state.settings.githubVerification;
 
   document.getElementById("ghSaveConfigBtn").addEventListener("click", async () => {
     gh.repo = document.getElementById("ghRepo").value.trim();
@@ -2706,6 +2741,33 @@ bindHandlers["settings-github"] = () => {
       await ghPutFile(ghr.repo, ghr.branch, ghr.token, ghr.path, buildRolesExport(), sha, "Backup Role DB dari WorldMarket Panel");
       statusEl.textContent = `Berhasil disimpan ke ${ghr.repo}/${ghr.path}.`; statusEl.className = "ok-text";
     } catch (e) { statusEl.textContent = "Gagal backup: " + e.message; statusEl.className = "danger-text"; }
+  });
+
+  document.getElementById("gvSaveConfigBtn").addEventListener("click", async () => {
+    gv.repo = document.getElementById("gvRepo").value.trim();
+    gv.branch = document.getElementById("gvBranch").value.trim() || "main";
+    gv.token = document.getElementById("gvToken").value.trim();
+    gv.path = document.getElementById("gvPath").value.trim() || DEFAULT_VERIFICATIONS_DB_PATH;
+    await saveSettingsWithConfirmation("gvSaveStatus");
+  });
+  document.getElementById("gvTestBtn").addEventListener("click", async () => {
+    const statusEl = document.getElementById("gvTestStatus");
+    const cfg = verificationGithubSettings();
+    if (!cfg.repo) { statusEl.textContent = "Isi repo (di kartu ini ATAU di Database Utama) dulu."; statusEl.className = "danger-text"; return; }
+    if (!cfg.token) { statusEl.textContent = "Token GitHub belum diisi/salah (butuh izin Contents: Read & Write)."; statusEl.className = "danger-text"; return; }
+    statusEl.textContent = `Menghubungi GitHub (${cfg.repo})…`; statusEl.className = "muted";
+    try {
+      const cur = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path);
+      const list = Array.isArray(cur.data) ? cur.data : [];
+      if (cur.sha) {
+        statusEl.textContent = `OK — file sudah ada di ${cfg.repo}/${cfg.path} (${list.length} kode tercatat). Token & repo terbaca dengan benar.`;
+        statusEl.className = "ok-text";
+      } else {
+        await ghPutFile(cfg.repo, cfg.branch, cfg.token, cfg.path, JSON.stringify([], null, 2), null, "Buat file database verifikasi Telegram (tes koneksi dari WorldMarket Panel)");
+        statusEl.textContent = `Berhasil dibuat file baru di ${cfg.repo}/${cfg.path}. Coba lagi "Mulai verifikasi" dari menu Profil.`;
+        statusEl.className = "ok-text";
+      }
+    } catch (e) { statusEl.textContent = "Gagal tes koneksi: " + e.message; statusEl.className = "danger-text"; }
   });
 };
 
