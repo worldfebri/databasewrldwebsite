@@ -493,27 +493,62 @@ async function usersListAll() {
 }
 
 // ---------------------------------------------------------------------------
-// Verifikasi Telegram — supaya penautan ID/Username tidak bisa dipalsukan.
-// Alurnya: website bikin kode acak & simpan permintaan "pending" di dalam
-// array di balik key "wm_verifications", lalu orangnya kirim
-// "/verifikasi <kode>" ke bot Telegram (project terpisah, lihat folder
-// bot/). Bot yang mengisi telegramId & mengubah status jadi "verified" di
-// array yang sama. Website tinggal polling key itu.
+// Verifikasi Telegram (BUKAN Supabase lagi) — file JSON terpisah di repo
+// GitHub yang SAMA (repo/branch/token dari Pengaturan > GitHub), path-nya
+// bisa diatur lewat github.verificationsDbPath. Alurnya: website bikin kode
+// acak & simpan permintaan "pending" di file itu (dibuat otomatis kalau
+// belum ada), lalu orangnya kirim "/verifikasi <kode>" ke bot Telegram
+// (project terpisah, lihat folder bot/). Bot yang mengisi telegramId &
+// mengubah status jadi "verified" di file yang sama (lewat
+// lib/verificationGithubDb.js). Website tinggal polling file itu.
+//
+// CATATAN KEAMANAN: token GitHub (Pengaturan > GitHub) dipakai di browser
+// SIAPAPUN yang sedang login (termasuk admin di panel ini) untuk MENULIS
+// file ini (bikin kode baru). Kalau token itu punya akses ke repo lain/
+// private yang sensitif, pertimbangkan pakai token terpisah yang scope-nya
+// dibatasi HANYA ke path database/additional/ di repo ini.
 // ---------------------------------------------------------------------------
 
+const DEFAULT_VERIFICATIONS_DB_PATH = "database/additional/verifications_db.json";
+function verificationGithubSettings() {
+  const gh = state.settings.github || {};
+  return { repo: (gh.repo || "").trim(), branch: (gh.branch || "main").trim() || "main", token: (gh.token || "").trim(), path: (gh.verificationsDbPath || DEFAULT_VERIFICATIONS_DB_PATH).trim() };
+}
+
 async function createVerificationRequest(accountId) {
-  const cfg = sbConfig();
-  if (!cfg.url || !cfg.anonKey) throw new Error("Supabase belum dikonfigurasi. Verifikasi Telegram belum bisa dipakai.");
-  const list = (await kvGet("wm_verifications")) || [];
+  const cfg = verificationGithubSettings();
+  if (!cfg.repo) throw new Error("Repo GitHub belum diisi di Pengaturan > GitHub. Verifikasi Telegram belum bisa dipakai.");
+  if (!cfg.token) throw new Error("Token GitHub belum diisi/salah di Pengaturan > GitHub (butuh izin Contents: Read & Write).");
+
   const request = { id: uid(), accountId, code: String(Math.floor(100000 + Math.random() * 900000)), status: "pending", createdAt: now(), expiresAt: now() + 10 * 60000 };
-  list.push(request);
-  const ok = await kvSet("wm_verifications", list);
-  if (!ok) throw new Error("Gagal membuat kode verifikasi.");
-  return { id: request.id, code: request.code };
+  const retries = 3;
+  for (let i = 0; i < retries; i++) {
+    let cur;
+    try { cur = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path); }
+    catch (e) { throw new Error("Gagal baca database verifikasi: " + e.message); }
+    const list = Array.isArray(cur.data) ? [...cur.data] : [];
+    list.push(request);
+    try {
+      await ghPutFile(cfg.repo, cfg.branch, cfg.token, cfg.path, JSON.stringify(list, null, 2), cur.sha, `Buat kode verifikasi Telegram (akun ${accountId})`);
+      return { id: request.id, code: request.code };
+    } catch (e) {
+      if (e.status === 409) continue; // ada yang nulis duluan -> ulang baca sha terbaru, bukan timpa paksa
+      throw new Error("Gagal membuat kode verifikasi: " + e.message);
+    }
+  }
+  throw new Error("Gagal membuat kode verifikasi setelah beberapa kali percobaan (bentrok terus-menerus, coba lagi).");
 }
 async function checkVerificationStatus(requestId) {
-  const list = (await kvGet("wm_verifications")) || [];
-  return list.find((r) => r.id === requestId) || null;
+  const cfg = verificationGithubSettings();
+  if (!cfg.repo) return null;
+  try {
+    const cur = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path);
+    const list = Array.isArray(cur.data) ? cur.data : [];
+    return list.find((r) => r.id === requestId) || null;
+  } catch (e) {
+    console.warn("checkVerificationStatus gagal:", e.message);
+    return null;
+  }
 }
 
 async function loadKey(key, fallback) {
@@ -2801,7 +2836,7 @@ create policy "wm allow anon" on public.${esc(sb.table || "kv_worldmd")}
         </div>
         <div id="sqlCopyStatus" class="muted" style="font-size:13px; margin-top:8px;"></div>
         <p class="desc" style="margin-top:14px;">Policy di atas sengaja permisif (bisa dibaca & ditulis siapa saja yang tahu anon key) karena panel ini memakai anon key dari sisi browser, bukan autentikasi server sungguhan. Ini trade-off yang disengaja supaya semua pengunjung bisa otomatis mendapat pengaturan terbaru tanpa server tambahan — konsekuensinya, siapa pun yang cukup teliti membuka DevTools bisa melihat (dan secara teknis mengubah) isi tabel ini, termasuk token GitHub, API key payment, dan API key AI yang kamu simpan di Pengaturan. Gunakan token/API key dengan scope seminimal mungkin, dan rotasi berkala.</p>
-        <p class="desc" style="margin-top:10px;">Tabel yang sama dipakai bareng <strong>bot Telegram verifikasi</strong> (folder <code>bot/</code>) lewat key <code>wm_verifications</code> dan <code>wm_bot_groups</code> di dalamnya.</p>
+        <p class="desc" style="margin-top:10px;">Tabel yang sama dipakai bareng <strong>bot Telegram verifikasi</strong> (folder <code>bot/</code>) lewat key <code>wm_bot_groups</code> di dalamnya. Kode verifikasi Telegram sendiri sekarang disimpan di file GitHub (Pengaturan &gt; GitHub), bukan di tabel Supabase ini lagi.</p>
       </div>
     </div>`;
 }
