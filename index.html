@@ -1000,6 +1000,15 @@ function renderTelegramLinkArea(overlay) {
           state.currentUser.telegramUsername = data.telegramUsername || "";
           renderTelegramLinkArea(overlay);
           notify("Telegram berhasil ditautkan.");
+        } else if (data.status === "failed") {
+          // Bot SUDAH memproses (misalnya ditolak karena telegramId ini sudah
+          // dipakai akun lain), jadi berhenti nunggu dan kasih tahu jelas —
+          // sebelumnya kondisi ini tidak ditangani sama sekali, jadi pesan
+          // "menunggu..." muncul selamanya walau bot sudah balas di Telegram.
+          clearInterval(overlay._pollTimer);
+          msgEl.textContent = data.failReason === "already_linked"
+            ? "Gagal: Telegram ID ini sudah terhubung ke akun lain. Putuskan tautannya di akun itu dulu (menu Profil > Telegram > \"Putuskan tautan\"), baru coba tautkan lagi ke akun ini."
+            : "Verifikasi gagal. Klik \"Mulai verifikasi\" lagi untuk membuat kode baru.";
         } else if (data.expiresAt < now()) {
           clearInterval(overlay._pollTimer);
           msgEl.textContent = "Kode sudah kedaluwarsa. Klik \"Mulai verifikasi\" lagi untuk kode baru.";
