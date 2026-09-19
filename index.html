@@ -1771,7 +1771,7 @@ async function ghGetFile(repo, branch, token, path) {
   // `cache: "no-store"` memaksa fetch() untuk TIDAK pakai/isi cache HTTP
   // browser sama sekali.
   const url = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch || "main")}&_ts=${Date.now()}`;
-  const headers = { Accept: "application/vnd.github+json", "Cache-Control": "no-cache" };
+  const headers = { Accept: "application/vnd.github+json" };
   if (token) headers.Authorization = `token ${token}`;
   const res = await fetch(url, { headers, cache: "no-store" });
   if (res.status === 404) return null;
