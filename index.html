@@ -954,9 +954,52 @@ function openUserProfileModal() {
   renderTelegramLinkArea(overlay);
 }
 
+async function reconcilePendingVerification() {
+  // Kasus nyata yang bikin "stuck": verifikasi SUKSES ditulis bot ke GitHub
+  // (status: "verified"), TAPI tab yang tadi nunggu (polling setInterval di
+  // handler tombol "Mulai verifikasi") sudah ditutup/direfresh SEBELUM
+  // sempat mendeteksi perubahan itu dan memanggil usersUpdate(). Hasilnya:
+  // baris "verified" nyangkut di GitHub selamanya, tidak pernah diterapkan
+  // ke akun, dan panel tetap nampilin "Belum tertaut". Fungsi ini dipanggil
+  // tiap kali area Verifikasi Telegram dibuka: cek ulang apa ada baris
+  // "verified" milik accountId ini yang belum tersimpan ke profil, lalu
+  // terapkan sekarang (self-healing, tidak perlu re-verifikasi dari nol).
+  if (state.currentUser?.telegramId) return false;
+  try {
+    const cfg = verificationGithubSettings();
+    if (!cfg.repo) return false;
+    const cur = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path);
+    const list = Array.isArray(cur.data) ? cur.data : [];
+    const row = list.find((r) => r.accountId === state.currentUser.id && r.status === "verified" && r.telegramId);
+    if (!row) return false;
+    await usersUpdate(state.currentUser.id, { telegramId: row.telegramId, telegramUsername: row.telegramUsername || "" });
+    state.currentUser.telegramId = row.telegramId;
+    state.currentUser.telegramUsername = row.telegramUsername || "";
+    return true;
+  } catch (e) {
+    console.warn("reconcilePendingVerification gagal:", e.message);
+    return false;
+  }
+}
+
 function renderTelegramLinkArea(overlay) {
   const area = overlay.querySelector("#telegramLinkArea");
   clearInterval(overlay._pollTimer);
+
+  if (!state.currentUser.telegramId) {
+    area.innerHTML = `<div class="muted" style="font-size:13px;">Memeriksa status tautan…</div>`;
+    reconcilePendingVerification().then((changed) => {
+      if (changed) notify("Telegram berhasil ditautkan (dari verifikasi sebelumnya).");
+      renderTelegramLinkAreaBody(overlay);
+    });
+    return;
+  }
+  renderTelegramLinkAreaBody(overlay);
+}
+
+function renderTelegramLinkAreaBody(overlay) {
+  const area = overlay.querySelector("#telegramLinkArea");
+  if (!area) return;
 
   if (state.currentUser.telegramId) {
     area.innerHTML = `
