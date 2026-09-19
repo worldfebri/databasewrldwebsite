@@ -1751,17 +1751,36 @@ bindHandlers["aiworld-config"] = () => {
 // Migrasi Database (admin only) — pindahkan data dari repo GitHub lama ke baru
 // ---------------------------------------------------------------------------
 
+function ghNormalizeRepo(repo = "") {
+  // Samain dengan normalizeRepo() di lib/verificationGithubDb.js (bot):
+  // kalau field "Repo" di Pengaturan > GitHub kepencet/kecopy-paste sebagai
+  // URL penuh (https://github.com/owner/nama-repo) alih-alih "owner/nama-repo"
+  // saja, tanpa ini website akan memanggil endpoint yang salah/404 padahal
+  // bot-nya baik-baik saja (karena bot SUDAH menormalisasi sendiri).
+  return String(repo || "").trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$/i, "");
+}
 async function ghGetFile(repo, branch, token, path) {
-  const url = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch || "main")}`;
-  const headers = { Accept: "application/vnd.github+json" };
+  repo = ghNormalizeRepo(repo);
+  // Cache-busting: GET ke api.github.com/.../contents/... SANGAT gampang
+  // ke-cache (baik oleh browser maupun CDN GitHub sendiri), apalagi kalau
+  // dipanggil berulang-ulang tiap beberapa detik (polling status verifikasi
+  // Telegram) dengan URL yang PERSIS SAMA. Efeknya: file di GitHub SUDAH
+  // ter-update ("verified"), tapi browser/CDN masih menyodorkan salinan lama
+  // (masih "pending") ke website ini untuk sementara (bisa lama). Query
+  // param `_ts` bikin tiap request unik (cache-key beda), dan
+  // `cache: "no-store"` memaksa fetch() untuk TIDAK pakai/isi cache HTTP
+  // browser sama sekali.
+  const url = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch || "main")}&_ts=${Date.now()}`;
+  const headers = { Accept: "application/vnd.github+json", "Cache-Control": "no-cache" };
   if (token) headers.Authorization = `token ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await fetch(url, { headers, cache: "no-store" });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Gagal ambil file (${res.status})`);
   const data = await res.json();
   return { text: b64DecodeUnicode(data.content.replace(/\n/g, "")), sha: data.sha };
 }
 async function ghPutFile(repo, branch, token, path, contentText, sha, message) {
+  repo = ghNormalizeRepo(repo);
   if (!token) throw new Error("Token repo tujuan wajib diisi untuk menulis file.");
   const url = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`;
   const headers = { Accept: "application/vnd.github+json", Authorization: `token ${token}`, "Content-Type": "application/json" };
