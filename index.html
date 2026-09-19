@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>WorldMarket Admin</title>
+<title>WorldMarket Store</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -178,11 +178,246 @@ table.table tr:last-child td { border-bottom: none; }
   #app { flex-direction: column; }
   .admin-corner { top: auto; bottom: 24px; right: 16px; }
 }
+
+/* ===== Android Mobile App Style Redesign ===== */
+:root {
+  --bg: #f5f7fb;
+  --panel: #ffffff;
+  --panel-2: #eef3ff;
+  --border: #dfe6f2;
+  --amber: #2563eb;
+  --teal: #06b6d4;
+  --violet: #7c3aed;
+  --red: #ef4444;
+  --text: #111827;
+  --muted: #6b7280;
+}
+
+html, body {
+  background:
+    radial-gradient(circle at top right, rgba(37,99,235,.12), transparent 35%),
+    linear-gradient(135deg,#f8fbff,#eef4ff);
+}
+
+.sidebar {
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(18px);
+  border-right: 1px solid #e5e7eb;
+  box-shadow: 8px 0 30px rgba(15,23,42,.06);
+}
+
+.panel, .stat-row, .chat-box {
+  background: rgba(255,255,255,.9);
+  backdrop-filter: blur(12px);
+  border-radius: 22px;
+  border-color: #e5e7eb;
+  box-shadow: 0 12px 35px rgba(15,23,42,.08);
+}
+
+.panel:hover {
+  transform: translateY(-5px);
+  border-color: rgba(37,99,235,.4);
+}
+
+.brand-mark {
+  border-radius: 14px;
+  background: linear-gradient(135deg,#2563eb,#06b6d4);
+  color:white;
+}
+
+.btn, .nav-item, .input {
+  border-radius: 14px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg,#2563eb,#06b6d4);
+  color:white;
+  box-shadow:0 8px 20px rgba(37,99,235,.25);
+}
+
+.btn-primary:hover {
+  transform:translateY(-3px);
+}
+
+.input {
+  background:#f8fafc;
+}
+
+/* Android bottom navigation */
+@media (max-width: 860px) {
+
+  #app {
+    padding-bottom:85px;
+  }
+
+  .sidebar {
+    position:fixed;
+    left:0;
+    bottom:0;
+    top:auto;
+    width:100%;
+    height:72px;
+    z-index:100;
+    padding:8px 12px;
+    border-right:none;
+    border-top:1px solid #e5e7eb;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+  }
+
+  .sidebar .brand,
+  .sidebar-foot {
+    display:none;
+  }
+
+  .nav {
+    display:flex;
+    flex-direction:row;
+    width:100%;
+    justify-content:space-around;
+    gap:5px;
+  }
+
+  .nav-item {
+    flex:1;
+    height:58px;
+    padding:8px 4px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:4px;
+    font-size:10px;
+  }
+
+  .nav-icon {
+    font-size:20px;
+  }
+
+  .nav-item.active {
+    background:linear-gradient(135deg,rgba(37,99,235,.15),rgba(6,182,212,.15));
+    color:#2563eb;
+  }
+
+  .mobile-bar {
+    display:flex;
+    position:sticky;
+    top:0;
+    z-index:90;
+    background:rgba(255,255,255,.85);
+    backdrop-filter:blur(15px);
+  }
+
+  .main {
+    padding:18px 14px 100px;
+  }
+
+  .title {
+    font-size:22px;
+  }
+}
+
+/* Desktop tetap modern */
+@media (min-width:861px) {
+  .main {
+    padding:40px 50px;
+  }
+
+  .sidebar {
+    border-radius:0 25px 25px 0;
+  }
+}
+
+/* Smooth animation */
+.panel, .btn, .nav-item {
+  transition:.25s ease;
+}
+
+.view {
+  animation: androidFade .45s ease;
+}
+
+@keyframes androidFade {
+  from {
+    opacity:0;
+    transform:translateY(20px) scale(.98);
+  }
+  to {
+    opacity:1;
+    transform:none;
+  }
+}
+
+
+/* ===== Login First Screen ===== */
+body.auth-lock #app,
+body.auth-lock #adminCorner {
+  visibility: hidden;
+}
+
+body.auth-lock #loginOverlay,
+body.auth-lock #userAuthOverlay {
+  display:flex !important;
+}
+
+.auth-splash {
+  position:fixed;
+  inset:0;
+  z-index:200;
+  background:
+    radial-gradient(circle at top right, rgba(37,99,235,.25), transparent 40%),
+    linear-gradient(135deg,#f8fbff,#eef4ff);
+}
+
+/* ===== Verifikasi Sesi Login Sebelumnya (auto-login dari device yang sama) ===== */
+.session-verify-overlay {
+  position:fixed; inset:0; z-index:400;
+  display:flex; align-items:center; justify-content:center;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255,176,32,0.14), transparent 45%),
+    radial-gradient(circle at 80% 85%, rgba(52,216,198,0.12), transparent 45%),
+    var(--bg);
+  animation: fadeInUp 0.35s ease both;
+}
+.session-verify-box { text-align:center; max-width:440px; padding:0 24px; }
+.session-verify-spinner {
+  width:52px; height:52px; margin:0 auto 22px; border-radius:50%;
+  border:3px solid rgba(255,176,32,0.18); border-top-color:var(--amber);
+  animation:sessionSpin 0.9s linear infinite;
+}
+@keyframes sessionSpin { to { transform:rotate(360deg); } }
+.session-verify-title {
+  font-family:'Sora', sans-serif; font-weight:700; font-size:20px; letter-spacing:0.6px;
+  color:var(--amber); margin-bottom:10px; line-height:1.35;
+  text-shadow:0 0 18px rgba(255,176,32,0.35);
+  animation:sessionVerifyPulse 1.6s ease-in-out infinite;
+}
+@keyframes sessionVerifyPulse { 0%,100% { opacity:1; } 50% { opacity:0.65; } }
+.session-verify-sub { color:var(--muted); font-size:13px; line-height:1.6; }
+
+/* ===== Loading video setelah login / verifikasi sesi berhasil ===== */
+.login-video-overlay {
+  position:fixed; inset:0; z-index:410;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:#000;
+  animation: fadeInUp 0.3s ease both;
+}
+.login-video-el { max-width:100%; max-height:78vh; border-radius:10px; box-shadow:0 0 40px rgba(255,176,32,0.15); }
+.login-video-caption { margin-top:16px; color:var(--muted); font-size:12.5px; letter-spacing:0.3px; }
+.login-video-unmute {
+  margin-top:14px; display:inline-flex; align-items:center; gap:6px;
+  background:rgba(255,176,32,0.14); border:1px solid rgba(255,176,32,0.4); color:var(--amber);
+  font-family:'Inter', sans-serif; font-size:13px; font-weight:600; padding:8px 16px; border-radius:999px;
+  cursor:pointer; animation:sessionVerifyPulse 1.6s ease-in-out infinite;
+}
+.login-video-unmute:hover { background:rgba(255,176,32,0.22); }
+
 </style>
 </head>
 <body>
 
-<div id="loading"><div class="mark">WM</div><div class="muted">Menyiapkan Admin Console…</div></div>
+<div id="loading"><div class="mark">WM</div><div class="muted">Menyiapkan panel…</div></div>
 
 <div id="app" style="display:none;">
   <aside class="sidebar" id="sidebar">
@@ -230,7 +465,7 @@ table.table tr:last-child td { border-bottom: none; }
 // tetap bisa terhubung ke Supabase itu, dua nilai di bawah ini WAJIB diisi
 // langsung di source code (sekali saja, seperti config.js pada bot
 // Telegram), lalu file ini di-upload ulang ke hosting:
-const APP_MODE = "admin"; // "store" = public shop, "admin" = separate admin website
+const APP_MODE = "store"; // "store" = public shop, "admin" = separate admin website
 const BOOTSTRAP_SUPABASE = {
   url: "https://exxewhxclonoeaqqnsnr.supabase.co",      // isi dengan Project URL Supabase kamu, contoh: "https://xxxx.supabase.co"
   anonKey: "sb_publishable_6uB41dwzk4KPLUQGLwyjbQ_5iWciNXv",  // isi dengan Anon public key Supabase kamu
@@ -254,7 +489,7 @@ const DEFAULT_ADMIN = { username: "worldadmin", password: "WM-Admin#2026" };
 
 const DEFAULT_SETTINGS = {
   general: { siteName: "WorldMarket", notifyWebhookUrl: "", sessionTimeoutMinutes: 30 },
-  apikeyShop: { enabled: true, pricePerUnit: 5, options: [1000] },
+  apikeyShop: { enabled: true, pricePerUnit: 5, options: [1000, 2500, 5000, 10000] },
   quotaShop: { enabled: true, priceTemp: 2000, pricePermanent: 4000, tempDurationDays: 20, tempOptions: [1, 3, 5, 10], permanentOptions: [1, 3, 5, 10] },
   warnSystem: { maxWarn: 3 },
   promoReminder: {
@@ -264,11 +499,20 @@ const DEFAULT_SETTINGS = {
   },
   aiWorld: { enabled: true, requireTrigger: true, triggerKeywords: ["world", "worldmd", "world md", "ai world"], cooldownSeconds: 12 },
   groq: { apiKey: "", model: "openai/gpt-oss-120b" },
-  github: { repo: "", branch: "main", token: "", path: "worldmarket-database.json", apikeyDbPath: "database/additional/apikey_db.json", quotaDbPath: "database/additional/quota_extra_db.json" },
+  github: { repo: "", branch: "main", token: "", path: "worldmarket-database.json", apikeyDbPath: "database/additional/apikey_db.json", quotaDbPath: "database/additional/quota_extra_db.json", ownerDbPath: "database/additional/owner_db.json" },
   githubRoles: { repo: "WorldMarket-dtb/khususrolemd", branch: "main", token: "", path: "database/additional/role_db.json" },
+  // Override role DEVELOPER manual dari Admin Panel — daftar Telegram ID
+  // (bukan username, ID numerik permanen) yang MAU BAGAIMANAPUN role dia di
+  // role_db.json (GitHub), website tetap anggap dia DEVELOPER (kuota &
+  // hak-hak yang ngikutin role DEVELOPER). Maksimal 5 ID. Ini murni override
+  // sisi WEBSITE saja — tidak mengubah role_db.json ataupun bot Telegram-nya.
+  developerOverride: { ids: [] },
   // Repo/akun/token terpisah KHUSUS kode verifikasi Telegram (opsional).
   // Kalau repo di sini dikosongkan, otomatis fallback pakai repo/token
-  // Database Utama di atas.
+  // Database Utama di atas. Diisahkan supaya token yang kepakai di browser
+  // buat bikin kode verifikasi (jelas kelihatan lewat DevTools ke SIAPAPUN
+  // yang login) bisa dibatasi scope-nya cuma ke 1 file kecil ini, gak perlu
+  // pakai token utama yang aksesnya lebih luas.
   githubVerification: { repo: "", branch: "main", token: "", path: "database/additional/verifications_db.json" },
   supabase: { url: "", anonKey: "", table: "kv_worldmd" },
   payment: { qrisImage: "", ownerTelegramId: "" },
@@ -279,6 +523,7 @@ const NAV_PUBLIC = [
   { id: "p-dashboard", label: "Ringkasan", icon: "◈" },
   { id: "apikeys", label: "Apikey Shop", icon: "◆" },
   { id: "quotas", label: "Quota Shop", icon: "▣" },
+  { id: "p-addowner", label: "Add/Hapus Owner", icon: "☎" },
   { id: "aiworld", label: "AI World", icon: "∴" },
   { id: "p-orders", label: "Pesanan Saya", icon: "🧾" },
 ];
@@ -294,7 +539,6 @@ const NAV_ADMIN = [
   { id: "aiworld-config", label: "Konfigurasi AI World", icon: "∴" },
   { id: "migration", label: "Migrasi Database", icon: "⇄" },
   { id: "settings-general", label: "Pengaturan Umum", icon: "⚙" },
-  { id: "settings-session", label: "Sesi & Video Loading", icon: "▶" },
   { id: "settings-github", label: "GitHub", icon: "⌥" },
   { id: "settings-payment", label: "Payment Gateway", icon: "◈" },
   { id: "settings-supabase", label: "Database Akun", icon: "⌗" },
@@ -310,6 +554,13 @@ let state = {
   chat: { messages: [], lastSentAt: 0, sending: false },
   migration: { fetchedText: null, fetchedFrom: null },
   inactivityTimer: null,
+  // Cache role Telegram user yang lagi login (dibaca otomatis dari role_db.json
+  // di GitHub — SAMA PERSIS dengan yang dipakai bot: roles_tg (by user id) lalu
+  // fallback roles_tg_usernames (by @username)). Dipakai supaya kuota addowner
+  // otomatis ngikutin role Telegram yang sudah terverifikasi, bukan cuma dari
+  // kuota yang dibeli manual. null = belum pernah dicek, { identityKey, ... } = cache.
+  myRoleInfo: null,
+  myRoleFetching: false,
 };
 
 // Akun user biasa (pengunjung/pembeli) — 100% terpisah dari akun admin.
@@ -497,39 +748,23 @@ async function usersListAll() {
 }
 
 // ---------------------------------------------------------------------------
-// Verifikasi Telegram (BUKAN Supabase lagi) — file JSON terpisah di repo
-// GitHub yang SAMA (repo/branch/token dari Pengaturan > GitHub), path-nya
-// bisa diatur lewat github.verificationsDbPath. Alurnya: website bikin kode
-// acak & simpan permintaan "pending" di file itu (dibuat otomatis kalau
-// belum ada), lalu orangnya kirim "/verifikasi <kode>" ke bot Telegram
-// (project terpisah, lihat folder bot/). Bot yang mengisi telegramId &
-// mengubah status jadi "verified" di file yang sama (lewat
-// lib/verificationGithubDb.js). Website tinggal polling file itu.
+// Verifikasi Telegram — supaya penautan ID/Username tidak bisa dipalsukan.
+// Alurnya (SEKARANG lewat GitHub, bukan Supabase lagi): website bikin kode
+// acak & simpan permintaan "pending" di dalam array JSON di GitHub, key
+// path-nya diatur github.verificationsDbPath (lihat verificationGithubSettings
+// di bawah, dekat modul Apikey/Quota DB). Lalu orangnya kirim
+// "/verifikasi <kode>" ke bot Telegram (project terpisah, lihat folder
+// bot/). Bot yang mengisi telegramId & mengubah status jadi "verified" di
+// array yang sama di GitHub. Website tinggal polling file itu.
 //
 // CATATAN KEAMANAN: token GitHub (Pengaturan > GitHub) dipakai di browser
-// SIAPAPUN yang sedang login (termasuk admin di panel ini) untuk MENULIS
-// file ini (bikin kode baru). Kalau token itu punya akses ke repo lain/
-// private yang sensitif, pertimbangkan pakai token terpisah yang scope-nya
-// dibatasi HANYA ke path database/additional/ di repo ini.
+// SIAPAPUN yang sedang login untuk MENULIS file ini (bikin kode baru) —
+// bukan cuma browser admin seperti modul GitHub lain di file ini. Token
+// itu jadi kelihatan lewat "View Source"/Network tab siapapun yang buka
+// menu Profil > Verifikasi Telegram. Kalau token itu punya akses ke repo
+// lain/private yang sensitif, pertimbangkan pakai token terpisah yang
+// scope-nya dibatasi HANYA ke path database/additional/ di repo ini.
 // ---------------------------------------------------------------------------
-
-const DEFAULT_VERIFICATIONS_DB_PATH = "database/additional/verifications_db.json";
-function verificationGithubSettings() {
-  // Kartu "GitHub Verifikasi Telegram" (Pengaturan > GitHub) punya repo/
-  // akun/token SENDIRI, terpisah dari Database Utama. Kalau kartu itu diisi
-  // (repo-nya tidak kosong), pakai SEPENUHNYA dari situ. Kalau dikosongkan,
-  // fallback 100% ke repo/branch/token Database Utama.
-  const gv = state.settings.githubVerification || {};
-  const gh = state.settings.github || {};
-  const useSeparate = !!(gv.repo || "").trim();
-  const src = useSeparate ? gv : gh;
-  return {
-    repo: (src.repo || "").trim(),
-    branch: (src.branch || "main").trim() || "main",
-    token: (src.token || "").trim(),
-    path: (gv.path || gh.verificationsDbPath || DEFAULT_VERIFICATIONS_DB_PATH).trim(),
-  };
-}
 
 async function createVerificationRequest(accountId) {
   const cfg = verificationGithubSettings();
@@ -623,7 +858,93 @@ function notify(msg) {
   notify._t = setTimeout(() => el.classList.remove("show"), 3200);
 }
 
+// ---------------------------------------------------------------------------
+// Sesi login per-device (auto-login) — HANYA disimpan lokal di browser
+// (tidak pernah disinkronkan ke Supabase/GitHub), supaya kalau device yang
+// sama membuka situs lagi, tidak perlu login ulang manual. Identitas akun
+// tetap diverifikasi ulang ke sumber data (Supabase kalau ada, fallback
+// cache lokal) lewat usersListAll() sebelum dianggap sah — device session
+// ini cuma "petunjuk" akun mana yang harus dicoba, bukan otorisasi itu sendiri.
+// ---------------------------------------------------------------------------
+const DEVICE_SESSION_KEY = "wm:deviceSession";
+async function saveDeviceSession(user) {
+  if (!user || !user.id) return;
+  await _rawSaveKey(DEVICE_SESSION_KEY, { id: user.id, username: user.username, savedAt: now() });
+}
+async function clearDeviceSession() {
+  try { localStorage.removeItem(DEVICE_SESSION_KEY); } catch {}
+}
+async function loadDeviceSession() {
+  return await loadKey(DEVICE_SESSION_KEY, null);
+}
+
+function showSessionVerifyOverlay(username) {
+  const el = document.createElement("div");
+  el.id = "sessionVerifyOverlay";
+  el.className = "session-verify-overlay";
+  el.innerHTML = `
+    <div class="session-verify-box">
+      <div class="session-verify-spinner"></div>
+      <div class="session-verify-title">VERIFIKASI SESI LOGIN SEBELUMNYA</div>
+      <div class="session-verify-sub">Ditemukan sesi login sebelumnya untuk <strong>${esc(username)}</strong> di device ini. Sedang memverifikasi ke server, mohon tunggu sebentar…</div>
+    </div>`;
+  document.body.appendChild(el);
+  return el;
+}
+function hideSessionVerifyOverlay() {
+  const el = document.getElementById("sessionVerifyOverlay");
+  if (el) el.remove();
+}
+
+// Layar loading berisi video (mp4) yang muncul setelah login/verifikasi sesi
+// berhasil, sebelum masuk ke dashboard. Video & durasinya diatur admin lewat
+// menu "Sesi & Video Loading" di panel admin (state.settings.sessionLogin).
+function playLoginLoadingVideo() {
+  return new Promise((resolve) => {
+    const sl = state.settings.sessionLogin || {};
+    if (!sl.enabled || !sl.videoUrl) { resolve(); return; }
+    const durationMs = Number(sl.durationMs) > 0 ? Number(sl.durationMs) : 2500;
+    const el = document.createElement("div");
+    el.id = "loginLoadingVideoOverlay";
+    el.className = "login-video-overlay";
+    el.innerHTML = `
+      <video class="login-video-el" id="loginLoadingVideoEl" playsinline loop>
+        <source src="${esc(sl.videoUrl)}" type="video/mp4" />
+      </video>
+      <div class="login-video-caption">Menyiapkan panel kamu…</div>
+      <button class="login-video-unmute" id="loginLoadingUnmuteBtn" type="button" style="display:none;">🔊 Ketuk untuk suara</button>`;
+    document.body.appendChild(el);
+
+    const videoEl = el.querySelector("#loginLoadingVideoEl");
+    const unmuteBtn = el.querySelector("#loginLoadingUnmuteBtn");
+    // Coba mainkan DENGAN suara dulu. Browser sering memblokir autoplay bersuara
+    // kalau tidak dipicu langsung dari klik user (misalnya pas auto-login sesi
+    // sebelumnya) — kalau diblokir, fallback ke mode senyap + tombol "Ketuk untuk suara".
+    videoEl.muted = false;
+    videoEl.volume = 1;
+    const playPromise = videoEl.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {
+        videoEl.muted = true;
+        videoEl.play().catch(() => {});
+        unmuteBtn.style.display = "inline-flex";
+      });
+    }
+    unmuteBtn.addEventListener("click", () => {
+      videoEl.muted = false;
+      videoEl.play().catch(() => {});
+      unmuteBtn.style.display = "none";
+    });
+
+    setTimeout(() => { el.remove(); resolve(); }, durationMs);
+  });
+}
+
 async function boot() {
+  // Sembunyikan seluruh tampilan store sampai user melewati login/register
+  if (APP_MODE === "store") {
+    document.body.classList.add("auth-lock");
+  }
   const [o, r, k, q, w, mo, s, a, u] = await Promise.all([
     loadKey("wm:owners", []), loadKey("wm:roles", []), loadKey("wm:apikeys", []),
     loadKey("wm:quotas", []), loadKey("wm:warns", []), loadKey("wm:manualOrders", []),
@@ -704,7 +1025,33 @@ async function boot() {
     renderAll();
     openLoginModal();
   } else if (state.currentView === "public" && !state.currentUser) {
-    openUserAuthModal("login");
+    const saved = await loadDeviceSession();
+    let matchedUser = null;
+    if (saved && saved.id) {
+      try {
+        const allUsers = await usersListAll();
+        matchedUser = allUsers.find((u) => u.id === saved.id) || null;
+      } catch (e) { console.warn("Gagal verifikasi sesi sebelumnya:", e.message); }
+    }
+    if (matchedUser) {
+      showSessionVerifyOverlay(matchedUser.username);
+      setTimeout(async () => {
+        hideSessionVerifyOverlay();
+        state.currentUser = {
+          id: matchedUser.id, username: matchedUser.username,
+          telegramId: matchedUser.telegramId || "", telegramUsername: matchedUser.telegramUsername || "",
+        };
+        await saveDeviceSession(state.currentUser);
+        await playLoginLoadingVideo();
+        document.body.classList.remove("auth-lock");
+        renderAdminCorner();
+        render();
+        notify(`Sesi login sebelumnya berhasil diverifikasi. Selamat datang kembali, ${matchedUser.username}.`);
+      }, 2000);
+    } else {
+      if (saved) await clearDeviceSession();
+      openUserAuthModal("login");
+    }
   }
 }
 
@@ -864,7 +1211,13 @@ function bindUserLoginForm(overlay) {
     if (!u || !p) { overlay.querySelector("#uLoginError").textContent = "Isi username dan password."; return; }
     const user = await usersVerifyLogin(u, p);
     if (user) {
-      state.currentUser = user; close(); renderAdminCorner(); render();
+      state.currentUser = user;
+      await saveDeviceSession(user);
+      close();
+      await playLoginLoadingVideo();
+      document.body.classList.remove("auth-lock");
+      renderAdminCorner();
+      render();
       notify(`Selamat datang kembali, ${user.username}.`);
     } else { overlay.querySelector("#uLoginError").textContent = "Username atau password salah."; }
   };
@@ -899,7 +1252,12 @@ function bindUserRegisterForm(overlay) {
     try {
       const user = await usersCreate(u, p);
       state.currentUser = user;
-      close(); renderAdminCorner(); render();
+      await saveDeviceSession(user);
+      close();
+      await playLoginLoadingVideo();
+      document.body.classList.remove("auth-lock");
+      renderAdminCorner();
+      render();
       notify("Akun berhasil dibuat, langsung masuk.");
     } catch (e) { errEl.textContent = e.message; }
   };
@@ -934,9 +1292,13 @@ function openUserProfileModal() {
   overlay.addEventListener("click", (e) => { if (e.target === overlay) { clearInterval(overlay._pollTimer); overlay.remove(); } });
   const close = () => { clearInterval(overlay._pollTimer); overlay.remove(); };
   overlay.querySelector("#profCancel").addEventListener("click", close);
-  overlay.querySelector("#profLogoutBtn").addEventListener("click", () => {
-    close(); state.currentUser = null; render(); renderAdminCorner();
+  overlay.querySelector("#profLogoutBtn").addEventListener("click", async () => {
+    close(); state.currentUser = null;
+    await clearDeviceSession();
+    document.body.classList.add("auth-lock");
+    render(); renderAdminCorner();
     notify("Berhasil keluar dari akun.");
+    openUserAuthModal("login");
   });
   overlay.querySelector("#profSaveBtn").addEventListener("click", async () => {
     const newUser = overlay.querySelector("#profNewUser").value.trim();
@@ -955,15 +1317,8 @@ function openUserProfileModal() {
 }
 
 async function reconcilePendingVerification() {
-  // Kasus nyata yang bikin "stuck": verifikasi SUKSES ditulis bot ke GitHub
-  // (status: "verified"), TAPI tab yang tadi nunggu (polling setInterval di
-  // handler tombol "Mulai verifikasi") sudah ditutup/direfresh SEBELUM
-  // sempat mendeteksi perubahan itu dan memanggil usersUpdate(). Hasilnya:
-  // baris "verified" nyangkut di GitHub selamanya, tidak pernah diterapkan
-  // ke akun, dan panel tetap nampilin "Belum tertaut". Fungsi ini dipanggil
-  // tiap kali area Verifikasi Telegram dibuka: cek ulang apa ada baris
-  // "verified" milik accountId ini yang belum tersimpan ke profil, lalu
-  // terapkan sekarang (self-healing, tidak perlu re-verifikasi dari nol).
+  // Lihat catatan di website_database.html — kasus yang sama juga berlaku
+  // di storefront ini.
   if (state.currentUser?.telegramId) return false;
   try {
     const cfg = verificationGithubSettings();
@@ -1044,10 +1399,6 @@ function renderTelegramLinkAreaBody(overlay) {
           renderTelegramLinkArea(overlay);
           notify("Telegram berhasil ditautkan.");
         } else if (data.status === "failed") {
-          // Bot SUDAH memproses (misalnya ditolak karena telegramId ini sudah
-          // dipakai akun lain), jadi berhenti nunggu dan kasih tahu jelas —
-          // sebelumnya kondisi ini tidak ditangani sama sekali, jadi pesan
-          // "menunggu..." muncul selamanya walau bot sudah balas di Telegram.
           clearInterval(overlay._pollTimer);
           msgEl.textContent = data.failReason === "already_linked"
             ? "Gagal: Telegram ID ini sudah terhubung ke akun lain. Putuskan tautannya di akun itu dulu (menu Profil > Telegram > \"Putuskan tautan\"), baru coba tautkan lagi ke akun ini."
@@ -1081,10 +1432,10 @@ function render() {
     quotas: viewQuotasPublic, "a-quotas": viewQuotasAdmin,
     aiworld: viewAiWorldChat, "aiworld-config": viewAiWorldConfig,
     "p-orders": viewMyOrders,
+    "p-addowner": viewAddOwnerSelf,
     owners: viewOwners, roles: viewRoles, warns: viewWarns, promo: viewPromo,
     migration: viewMigration,
     "settings-general": viewSettingsGeneral,
-    "settings-session": viewSettingsSession,
     "settings-github": viewSettingsGithub,
     "settings-payment": viewSettingsPayment,
     "settings-supabase": viewSettingsSupabase,
@@ -1114,14 +1465,10 @@ function currentPromoText(kind) {
 
 function viewPublicDashboard() {
   const s = state.settings;
-  const activeQuotaCount = state.quotas.filter((q) => q.type === "permanent" || q.expiresAt > now()).reduce((sum, q) => sum + Number(q.amount), 0);
-  const totalApikeyUnits = state.apikeys.reduce((sum, k) => sum + Number(k.amount), 0);
   return `
     <div class="view">
       <div class="hero-shimmer">${sectionHead(s.general.siteName, "Selamat datang", "Tempat beli apikey, kuota add owner, dan ngobrol sama AI World — semuanya langsung dari website ini.")}</div>
       <div class="stat-row">
-        <div class="stat"><div class="stat-value" id="statApikeySold" data-countup="${totalApikeyUnits}">0</div><div class="stat-label">Unit apikey terjual</div></div>
-        <div class="stat"><div class="stat-value" id="statQuotaActive" data-countup="${activeQuotaCount}">0</div><div class="stat-label">Kuota addowner aktif</div></div>
         <div class="stat"><div class="stat-value">${s.apikeyShop.enabled ? '<span class="live-dot"></span>Buka' : "Tutup"}</div><div class="stat-label">Status apikey shop</div></div>
         <div class="stat"><div class="stat-value">${s.quotaShop.enabled ? '<span class="live-dot"></span>Buka' : "Tutup"}</div><div class="stat-label">Status quota shop</div></div>
       </div>
@@ -1135,7 +1482,6 @@ function viewPublicDashboard() {
 bindHandlers["p-dashboard"] = () => {
   document.querySelectorAll("[data-goto]").forEach((btn) => btn.addEventListener("click", () => { state.tab = btn.dataset.goto; renderSidebar(); render(); }));
   animateCountUps();
-  refreshGithubDashboardStats(); // timpa dengan angka NYATA dari GitHub begitu selesai dibaca
 };
 
 // ---------------------------------------------------------------------------
@@ -1146,6 +1492,16 @@ function matchesIdentity(value, identities) {
   if (!value) return false;
   const v = String(value).trim().toLowerCase();
   return identities.some((id) => id && String(id).trim().toLowerCase() === v);
+}
+
+// Normalisasi nomor WA — sama persis seperti normalizeNumber() di lib/ownerDb.js
+// script bot: 08xxx -> 628xxx, 8xxx -> 628xxx, 62xxx tetap, sisanya cuma ambil digit.
+function normalizeOwnerNumber(n) {
+  let d = String(n || "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.startsWith("0")) d = "62" + d.slice(1);
+  else if (d.startsWith("8")) d = "62" + d;
+  return d;
 }
 
 function viewMyOrders() {
@@ -1159,7 +1515,7 @@ function viewMyOrders() {
   const identities = [state.currentUser.username, state.currentUser.telegramId, state.currentUser.telegramUsername].filter(Boolean);
   const myKeys = state.apikeys.filter((k) => matchesIdentity(k.buyer, identities));
   const myQuotas = state.quotas.filter((q) => matchesIdentity(q.buyer, identities));
-  const myOwners = state.currentUser.telegramId ? state.owners.filter((o) => matchesIdentity(o.number, identities) || matchesIdentity(o.label, identities)) : [];
+  const myOwners = state.currentUser.telegramId ? state.owners.filter((o) => matchesIdentity(o.addedBy, identities) || matchesIdentity(o.number, identities) || matchesIdentity(o.label, identities)) : [];
   return `
     <div class="view">
       ${sectionHead("Pesanan Saya", `Riwayat belanja ${state.currentUser.username}`, state.currentUser.telegramId ? `Termasuk riwayat dari Telegram ID/Username yang ditautkan: ${esc(state.currentUser.telegramId)}.` : `Tautkan Telegram ID/Username di menu Profil supaya riwayat dari bot ikut muncul di sini.`)}
@@ -1189,13 +1545,162 @@ function viewMyOrders() {
 }
 
 // ---------------------------------------------------------------------------
+// Add/Hapus Owner (self-service, publik) — versi website dari perintah
+// /addowner & /delowner di bot WhatsApp. Butuh login + Telegram sudah
+// tertaut (verifikasi lewat menu Profil) supaya nomor yang menambahkan
+// jelas identitasnya, dan kuota dipotong dari kuota yang sudah dibeli di
+// Quota Shop (mengikuti pola addedBy/kuota di lib/ownerDb.js pada bot).
+// ---------------------------------------------------------------------------
+
+function myRoleIdentityKey(u) {
+  return `${u?.telegramId || ""}|${u?.telegramUsername || ""}`;
+}
+
+// Kuota addowner user = jatah dari ROLE Telegram yang terverifikasi (otomatis,
+// dibaca dari role_db.json — lihat fetchMyRoleQuota) DITAMBAH kuota yang sudah
+// dibeli manual di Quota Shop. Jadi kalau role Telegram user itu "FULL UP",
+// dia otomatis dapat jatah dasar 1 (ikut DEFAULT_ADDOWNER_QUOTA.FULL_UP) tanpa
+// perlu beli apa-apa; kalau rolenya "RESSELER" otomatis dapat 2, dst.
+function getMyOwnerQuotaInfo() {
+  const u = state.currentUser;
+  if (!u) return { identities: [], totalQuota: 0, purchasedQuota: 0, baseQuota: 0, role: "NONE", roleLoading: false, roleError: "", used: 0, remaining: 0, myOwners: [] };
+  const identities = [u.username, u.telegramId, u.telegramUsername].filter(Boolean);
+  const purchasedQuota = state.quotas
+    .filter((q) => matchesIdentity(q.buyer, identities) && (q.type === "permanent" || q.expiresAt > now()))
+    .reduce((sum, q) => sum + Number(q.amount || 0), 0);
+
+  const key = myRoleIdentityKey(u);
+  const cached = state.myRoleInfo && state.myRoleInfo.identityKey === key ? state.myRoleInfo : null;
+  const roleLoading = !!u.telegramId && !cached && state.myRoleFetching;
+  const baseQuota = cached && cached.ok ? cached.baseQuota : 0;
+  const role = cached && cached.ok ? cached.role : "NONE";
+  const roleError = cached && !cached.ok ? (cached.message || "") : "";
+  const roleIsOverride = !!(cached && cached.ok && cached.isOverride);
+
+  const totalQuota = baseQuota + purchasedQuota;
+  const myOwners = state.owners.filter((o) => matchesIdentity(o.addedBy, identities));
+  const used = myOwners.length;
+  return { identities, totalQuota, purchasedQuota, baseQuota, role, roleLoading, roleError, roleIsOverride, used, remaining: Math.max(0, totalQuota - used), myOwners };
+}
+
+// Panggil ini tiap kali halaman Add/Hapus Owner dibuka: kalau role belum
+// pernah dicek (atau identitas Telegram user berubah), ambil ulang dari
+// GitHub lalu render ulang begitu hasilnya datang.
+function ensureMyRoleQuotaLoaded() {
+  const u = state.currentUser;
+  if (!u || !u.telegramId) return;
+  const key = myRoleIdentityKey(u);
+  if (state.myRoleInfo && state.myRoleInfo.identityKey === key) return;
+  if (state.myRoleFetching) return;
+  state.myRoleFetching = true;
+  fetchMyRoleQuota(u.telegramId, u.telegramUsername).then((res) => {
+    state.myRoleFetching = false;
+    state.myRoleInfo = { identityKey: key, ...res };
+    if (state.currentUser && myRoleIdentityKey(state.currentUser) === key && state.tab === "p-addowner") render();
+  });
+}
+
+function viewAddOwnerSelf() {
+  if (!state.currentUser) {
+    return `
+      <div class="view">
+        ${sectionHead("Add/Hapus Owner", "Tambah & hapus owner sendiri", "Versi website dari perintah /addowner dan /delowner di bot WhatsApp. Masuk atau daftar dulu untuk pakai fitur ini.")}
+        <div class="empty">Belum masuk. Klik "Masuk / Daftar" di kanan atas.</div>
+      </div>`;
+  }
+  if (!state.currentUser.telegramId) {
+    return `
+      <div class="view">
+        ${sectionHead("Add/Hapus Owner", "Tambah & hapus owner sendiri", "Versi website dari perintah /addowner dan /delowner di bot WhatsApp.")}
+        <div class="panel">
+          <div class="panel-title">Verifikasi Telegram dulu</div>
+          <p class="desc" style="margin-bottom:14px;">Supaya nomor yang menambahkan owner jelas identitasnya (dan tidak bisa dipalsukan orang lain), fitur ini baru aktif setelah Telegram kamu tertaut. Buka menu Profil untuk verifikasi.</p>
+          <button class="btn btn-primary" id="addownerGoProfile">Buka Profil</button>
+        </div>
+      </div>`;
+  }
+  const info = getMyOwnerQuotaInfo();
+  const roleRowHtml = info.roleLoading
+    ? `<div class="panel"><div class="panel-title">Role Telegram kamu</div><p class="desc" style="margin:0;">🔎 Mendeteksi role dari Telegram ID/username yang tertaut...</p></div>`
+    : `<div class="panel">
+        <div class="panel-title">Role Telegram kamu (otomatis)</div>
+        <div class="kv"><span>Role terdeteksi</span><strong>${esc(formatRoleLabel(info.role))}${info.roleIsOverride ? ` <span class="pill pill-on" style="margin-left:6px;">Override Admin</span>` : ""}</strong></div>
+        <div class="kv"><span>Jatah kuota dari role ini</span><strong>${info.baseQuota}</strong></div>
+        <div class="kv"><span>Kuota tambahan dari pembelian</span><strong>${info.purchasedQuota}</strong></div>
+        <p class="desc" style="margin:10px 0 0;">${info.roleIsOverride ? "Role DEVELOPER ini dipasang manual oleh admin (Telegram ID kamu ada di daftar override), jadi berlaku terlepas dari role kamu di <code>role_db.json</code>." : `Dibaca otomatis dari <code>role_db.json</code> berdasarkan Telegram ID/username yang tertaut di Profil — sama seperti bot. Kalau role kamu diubah developer lewat bot, jatah di sini ikut berubah otomatis (refresh halaman ini).`}</p>
+        ${info.roleError ? `<p class="desc" style="margin-top:8px;color:var(--danger,#e5484d);">⚠️ ${esc(info.roleError)}</p>` : ""}
+      </div>`;
+  return `
+    <div class="view">
+      ${sectionHead("Add/Hapus Owner", "Tambah & hapus owner sendiri", "Versi website dari perintah /addowner dan /delowner di bot WhatsApp. Kuota = jatah otomatis dari role Telegram kamu + kuota yang sudah kamu beli di Quota Shop.")}
+      ${roleRowHtml}
+      <div class="stat-row">
+        <div class="stat"><div class="stat-value">${info.totalQuota}</div><div class="stat-label">Kuota addowner kamu</div></div>
+        <div class="stat"><div class="stat-value">${info.used}</div><div class="stat-label">Sudah terpakai</div></div>
+        <div class="stat"><div class="stat-value">${info.remaining}</div><div class="stat-label">Sisa kuota</div></div>
+      </div>
+      ${info.totalQuota === 0 && !info.roleLoading ? `<div class="empty">Kamu belum punya kuota addowner (role kamu belum diset developer & belum beli tambahan). <a href="#" data-goto="quotas" style="color:var(--amber);">Beli kuota dulu di Quota Shop</a>.</div>` : ""}
+      <div class="panel">
+        <div class="panel-title">/addowner — Tambah owner baru</div>
+        <div class="form-row">
+          <input class="input" id="myOwnerNumber" placeholder="Nomor WA, contoh 08123456789" ${info.remaining <= 0 ? "disabled" : ""} />
+          <input class="input" id="myOwnerLabel" placeholder="Catatan (opsional)" ${info.remaining <= 0 ? "disabled" : ""} />
+          <button class="btn btn-violet" id="myOwnerAddBtn" ${info.remaining <= 0 ? "disabled" : ""}>Tambah owner</button>
+        </div>
+        ${info.remaining <= 0 && info.totalQuota > 0 ? `<p class="desc" style="margin-top:10px;">Kuota kamu sudah habis. Hapus salah satu owner di bawah atau beli kuota tambahan.</p>` : ""}
+      </div>
+      <div class="panel">
+        <div class="panel-title">/delowner — Owner yang kamu tambahkan</div>
+        ${info.myOwners.length === 0 ? `<div class="empty">Belum ada owner yang kamu tambahkan lewat website ini.</div>` : `
+        <table class="table"><thead><tr><th>Nomor</th><th>Catatan</th><th>Ditambahkan</th><th></th></tr></thead><tbody>
+          ${info.myOwners.map((o) => `<tr><td class="mono">${esc(o.number)}</td><td>${esc(o.label) || "—"}</td><td class="muted">${fmtDate(o.addedAt)}</td><td><button class="btn btn-ghost btn-danger" data-my-remove-owner="${o.id}">Hapus</button></td></tr>`).join("")}
+        </tbody></table>`}
+      </div>
+    </div>`;
+}
+bindHandlers["p-addowner"] = () => {
+  ensureMyRoleQuotaLoaded();
+  const goProfileBtn = document.getElementById("addownerGoProfile");
+  if (goProfileBtn) goProfileBtn.addEventListener("click", () => openUserProfileModal());
+
+  document.querySelectorAll('[data-goto="quotas"]').forEach((a) => a.addEventListener("click", (e) => {
+    e.preventDefault(); state.tab = "quotas"; render();
+  }));
+
+  const addBtn = document.getElementById("myOwnerAddBtn");
+  if (addBtn) addBtn.addEventListener("click", () => {
+    const info = getMyOwnerQuotaInfo();
+    if (info.remaining <= 0) return notify("Kuota addowner kamu habis.");
+    const raw = document.getElementById("myOwnerNumber").value.trim();
+    const label = document.getElementById("myOwnerLabel").value.trim();
+    if (!raw) return notify("Nomor tidak boleh kosong.");
+    const number = normalizeOwnerNumber(raw);
+    if (!number) return notify("Nomor tidak valid.");
+    if (state.owners.some((o) => o.number === number)) return notify("Nomor itu sudah ada di Owner DB.");
+    const addedBy = state.currentUser.telegramId;
+    state.owners.unshift({ id: uid(), number, label, addedAt: now(), addedBy });
+    saveKey("wm:owners", state.owners);
+    notify("Owner ditambahkan (/addowner).");
+    render();
+  });
+
+  document.querySelectorAll("[data-my-remove-owner]").forEach((btn) => btn.addEventListener("click", () => {
+    const info = getMyOwnerQuotaInfo();
+    const target = info.myOwners.find((o) => o.id === btn.dataset.myRemoveOwner);
+    if (!target) return;
+    state.owners = state.owners.filter((o) => o.id !== target.id);
+    saveKey("wm:owners", state.owners);
+    notify("Owner dihapus (/delowner). Kuota kamu kembali.");
+    render();
+  }));
+};
+
+// ---------------------------------------------------------------------------
 // Admin Dashboard
 // ---------------------------------------------------------------------------
 
 function viewAdminDashboard() {
   const s = state.settings;
-  const activeQuotaCount = state.quotas.filter((q) => q.type === "permanent" || q.expiresAt > now()).reduce((sum, q) => sum + Number(q.amount), 0);
-  const totalApikeyUnits = state.apikeys.reduce((sum, k) => sum + Number(k.amount), 0);
   const flaggedWarns = state.warns.filter((w) => w.count >= s.warnSystem.maxWarn).length;
   const pill = (on) => `<span class="pill ${on ? "pill-on" : "pill-off"}">${on ? "aktif" : "nonaktif"}</span>`;
   const recent = [
@@ -1210,8 +1715,7 @@ function viewAdminDashboard() {
       <div class="stat-row mode-admin-stats">
         <div class="stat"><div class="stat-value" data-countup="${state.owners.length}">0</div><div class="stat-label">Nomor di Owner DB</div></div>
         <div class="stat"><div class="stat-value" data-countup="${state.roles.length}">0</div><div class="stat-label">User di Role DB</div></div>
-        <div class="stat"><div class="stat-value" id="statApikeySold" data-countup="${totalApikeyUnits}">0</div><div class="stat-label">Unit apikey terjual</div></div>
-        <div class="stat"><div class="stat-value" id="statQuotaActive" data-countup="${activeQuotaCount}">0</div><div class="stat-label">Kuota addowner aktif</div></div>
+        <div class="stat"><div class="stat-value" id="statRoleQuotaActive" data-countup="0">0</div><div class="stat-label">Kuota addowner dari role</div></div>
         <div class="stat"><div class="stat-value" data-countup="${flaggedWarns}">0</div><div class="stat-label">User kena batas warn</div></div>
       </div>
       <div class="grid-2">
@@ -1225,9 +1729,25 @@ function viewAdminDashboard() {
           ${recent.length === 0 ? `<div class="empty">Belum ada aktivitas.</div>` : `<ul class="activity">${recent.map((r) => `<li><span class="mono muted" style="font-size:12px;">${fmtDate(r.t)}</span><span>${r.text}</span></li>`).join("")}</ul>`}
         </div>
       </div>
+      <div class="panel">
+        <div class="panel-title">Kuota addowner per role (dari GitHub, real-time)</div>
+        <p class="desc" style="margin-bottom:14px;">Diambil langsung dari <code>role_db.json</code> + <code>owner_db.json</code> asli yang ditulis bot — bukan catatan lokal browser. Butuh Repo Role DB &amp; Repo database utama sudah diisi di Pengaturan &gt; GitHub.</p>
+        <div id="roleQuotaBreakdown" class="muted">Memuat…</div>
+      </div>
     </div>`;
 }
-bindHandlers["a-dashboard"] = () => { animateCountUps(); refreshGithubDashboardStats(); };
+bindHandlers["a-dashboard"] = () => {
+  animateCountUps();
+  refreshGithubDashboardStats();
+  const el = document.getElementById("roleQuotaBreakdown");
+  if (el) {
+    getRoleQuotaTotalsRemote().then((rq) => {
+      if (!rq.ok) { el.innerHTML = `<div class="danger-text">${esc(rq.message || "Gagal memuat.")}</div>`; return; }
+      if (!rq.byRole.length) { el.innerHTML = `<div class="empty">Belum ada nomor dengan role di Role DB.</div>`; return; }
+      el.innerHTML = `<table class="table"><thead><tr><th>Role</th><th>Jumlah user</th><th>Jatah kuota</th><th>Terpakai</th><th>Sisa aktif</th></tr></thead><tbody>${rq.byRole.map((r) => `<tr><td>${esc(r.role)}</td><td>${r.holders}</td><td>${r.granted}</td><td>${r.used}</td><td>${r.remaining}</td></tr>`).join("")}</tbody></table>`;
+    });
+  }
+};
 
 // ---------------------------------------------------------------------------
 // Owner DB (admin only)
@@ -1243,8 +1763,8 @@ function viewOwners() {
         <button class="btn btn-violet" id="ownerAddBtn">Tambah owner</button>
       </div>
       ${state.owners.length === 0 ? `<div class="empty">Owner DB masih kosong. Tambahkan nomor pertama di atas.</div>` : `
-      <table class="table"><thead><tr><th>Nomor</th><th>Catatan</th><th>Ditambahkan</th><th></th></tr></thead><tbody>
-        ${state.owners.map((o) => `<tr><td class="mono">${esc(o.number)}</td><td>${esc(o.label) || "—"}</td><td class="muted">${fmtDate(o.addedAt)}</td><td><button class="btn btn-ghost btn-danger" data-remove-owner="${o.id}">Hapus</button></td></tr>`).join("")}
+      <table class="table"><thead><tr><th>Nomor</th><th>Catatan</th><th>Oleh</th><th>Ditambahkan</th><th></th></tr></thead><tbody>
+        ${state.owners.map((o) => `<tr><td class="mono">${esc(o.number)}</td><td>${esc(o.label) || "—"}</td><td class="muted">${esc(o.addedBy) || "admin"}</td><td class="muted">${fmtDate(o.addedAt)}</td><td><button class="btn btn-ghost btn-danger" data-remove-owner="${o.id}">Hapus</button></td></tr>`).join("")}
       </tbody></table>`}
     </div>`;
 }
@@ -1306,24 +1826,43 @@ bindHandlers.roles = () => {
 
 function viewApikeysPublic() {
   const s = state.settings.apikeyShop;
+  // Keep bulk purchase presets available even when Supabase still has older options.
+  s.options = Array.from(new Set([...(Array.isArray(s.options) ? s.options : []), 1000, 2500, 5000, 10000]))
+    .map(Number)
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .sort((a, b) => a - b);
   const promo = currentPromoText("ak");
+  if (!state.currentUser) {
+    return `
+      <div class="view">
+        ${sectionHead("Apikey Shop", "Beli apikey", `Harga ${rupiah(s.pricePerUnit)} per unit. Tersedia pembelian hingga 10.000 unit sekaligus. 25 apikey pertama tetap gratis per hari sebagai warming up.`)}
+        <div class="panel">
+          <div class="panel-title">Cek saldo apikey nomor bot</div>
+          <p class="desc" style="margin-bottom:10px;">Baca langsung dari database GitHub yang dipakai bot WORLD MD — kalau nomornya sudah pernah beli, saldo & sisa masa aktifnya langsung kelihatan di sini, otomatis.</p>
+          <div class="form-row">
+            <input class="input" id="akCheckNumber" placeholder="Nomor bot, contoh 6281234567890" />
+            <button class="btn btn-secondary" id="akCheckBtn">Cek saldo</button>
+          </div>
+          <div id="akCheckResult" style="margin-top:10px;"></div>
+        </div>
+        <div class="empty">Masuk atau daftar dulu supaya pembelian tercatat ke akunmu dan muncul di "Pesanan Saya". Klik "Masuk / Daftar" di kanan atas.</div>
+      </div>`;
+  }
   return `
     <div class="view">
-      ${sectionHead("Apikey Shop", "Beli apikey", `Harga ${rupiah(s.pricePerUnit)} per unit. 25 apikey pertama tetap gratis per hari sebagai warming up.`)}
+      ${sectionHead("Apikey Shop", "Beli apikey", `Harga ${rupiah(s.pricePerUnit)} per unit. Tersedia pembelian hingga 10.000 unit sekaligus. 25 apikey pertama tetap gratis per hari sebagai warming up.`)}
       ${promo ? `<div class="promo-banner">📣 ${esc(promo)}</div>` : ""}
-
       <div class="panel">
         <div class="panel-title">Cek saldo apikey nomor bot</div>
-        <p class="desc" style="margin-bottom:10px;">Baca langsung dari database GitHub yang dipakai bot WORLD MD — kalau nomornya sudah pernah beli, saldo & sisa masa aktifnya langsung kelihatan di sini, otomatis, tanpa perlu ditanya admin.</p>
+        <p class="desc" style="margin-bottom:10px;">Baca langsung dari database GitHub yang dipakai bot WORLD MD — kalau nomornya sudah pernah beli, saldo & sisa masa aktifnya langsung kelihatan di sini, otomatis.</p>
         <div class="form-row">
           <input class="input" id="akCheckNumber" placeholder="Nomor bot, contoh 6281234567890" />
           <button class="btn btn-secondary" id="akCheckBtn">Cek saldo</button>
         </div>
         <div id="akCheckResult" style="margin-top:10px;"></div>
       </div>
-
       <div class="form-row">
-        ${state.currentUser ? `<div class="price-tag">Beli sebagai: ${esc(state.currentUser.username)}</div>` : `<input class="input" id="akBuyer" placeholder="Nama atau ID kamu" />`}
+        <div class="price-tag">Beli sebagai: ${esc(state.currentUser.username)}</div>
         <input class="input" id="akBotNumber" placeholder="Nomor bot, contoh 6281234567890" />
         <select class="input" id="akAmount">${s.options.map((o) => `<option value="${o}">${o} unit</option>`).join("")}</select>
         <div class="price-tag" id="akPrice">${rupiah(s.options[0] * s.pricePerUnit)}</div>
@@ -1331,14 +1870,28 @@ function viewApikeysPublic() {
       </div>
       <p class="desc">Apikey yang dibeli ditambahkan (aditif) langsung ke saldo nomor bot itu di <code>apikey_db.json</code> — bukan berupa kode yang perlu ditempel manual, dan tidak menghapus saldo yang sudah ada sebelumnya.</p>
       <div id="akResult"></div>
+      ${state.currentUser.telegramId ? `
+      <div class="panel" style="margin-top:18px;">
+        <div class="panel-title">🔁 Pindah Apikey ke Nomor Lain</div>
+        <p class="desc">Ganti nomor WA bot yang kamu pakai? Pindahin SELURUH sisa apikey dari nomor lama ke nomor baru — nilainya apa adanya (gak nambah gak ngurangin). Kalau nomor baru sudah punya sisa apikey sebelumnya, sisa itu DITAMBAHKAN (bukan ketimpa). Nomor lama otomatis jadi 0 setelah dipindah. Cuma bisa mindahin apikey yang kamu beli sendiri (${esc(state.currentUser.username)}).</p>
+        <div class="form-row">
+          <input class="input" id="akTransferOld" placeholder="Nomor bot LAMA, contoh 6281234567890" />
+          <input class="input" id="akTransferNew" placeholder="Nomor bot BARU (tujuan)" />
+          <button class="btn btn-secondary" id="akTransferBtn">Pindahin Apikey</button>
+        </div>
+        <div id="akTransferResult"></div>
+      </div>` : `
+      <div class="panel" style="margin-top:18px;">
+        <div class="panel-title">🔁 Pindah Apikey ke Nomor Lain</div>
+        <div class="panel-title" style="margin-top:6px;">Verifikasi Telegram dulu</div>
+        <p class="desc" style="margin-bottom:14px;">Supaya apikey gak bisa dipindahin sembarangan sama orang lain, fitur ini baru aktif setelah Telegram kamu tertaut. Buka menu Profil untuk verifikasi.</p>
+        <button class="btn btn-primary" id="akTransferGoProfile">Buka Profil</button>
+      </div>`}
     </div>`;
 }
 bindHandlers.apikeys = () => {
-  const s = state.settings.apikeyShop;
-  const updatePrice = () => { document.getElementById("akPrice").textContent = rupiah(Number(document.getElementById("akAmount").value) * s.pricePerUnit); };
-  document.getElementById("akAmount").addEventListener("change", updatePrice);
-
-  document.getElementById("akCheckBtn").addEventListener("click", async () => {
+  const checkBtn = document.getElementById("akCheckBtn");
+  if (checkBtn) checkBtn.addEventListener("click", async () => {
     const num = document.getElementById("akCheckNumber").value.trim();
     const box = document.getElementById("akCheckResult");
     if (!num) { notify("Isi dulu nomor bot yang mau dicek."); return; }
@@ -1355,21 +1908,21 @@ bindHandlers.apikeys = () => {
       <div class="muted">Berlaku sampai: ${res.entry.expiresAt ? fmtDate(res.entry.expiresAt) : "—"}</div>
     </div>`;
   });
-
+  if (!state.currentUser) return;
+  const s = state.settings.apikeyShop;
+  const updatePrice = () => { document.getElementById("akPrice").textContent = rupiah(Number(document.getElementById("akAmount").value) * s.pricePerUnit); };
+  document.getElementById("akAmount").addEventListener("change", updatePrice);
   const issueBtn = document.getElementById("akIssueBtn");
   if (issueBtn) issueBtn.addEventListener("click", () => {
-    const buyer = state.currentUser ? state.currentUser.username : document.getElementById("akBuyer").value.trim();
+    const buyer = state.currentUser.username;
     const botNumber = document.getElementById("akBotNumber").value.trim();
     const amount = Number(document.getElementById("akAmount").value);
-    if (!buyer) return notify("Isi nama/ID kamu dulu.");
     if (!botNumber) return notify("Isi nomor bot yang mau dipasangi apikey.");
     const price = amount * s.pricePerUnit;
     const onApproved = async () => {
       await refreshManualOrderStatus("");
-      // Setelah admin ACC, saldo SUDAH ditulis ke apikey_db.json di GitHub
-      // (lihat finalizeManualOrder) — di sini kita baca ULANG dari GitHub,
-      // bukan asal nampilin angka `amount`, supaya yang ditampilkan itu
-      // saldo NYATA (termasuk kalau nomor itu sudah punya sisa sebelumnya).
+      // Saldo NYATA sudah ditulis ke apikey_db.json di GitHub saat admin ACC
+      // (lihat finalizeManualOrder) — baca ulang dari sana, jangan asumsi.
       const balance = await getApikeyBalanceRemote(botNumber);
       notify("Pembayaran disetujui, apikey terpasang.");
       document.getElementById("akResult").innerHTML = balance.ok && balance.found
@@ -1379,7 +1932,61 @@ bindHandlers.apikeys = () => {
     if (!manualPaymentConfigured()) { showPaymentDownScreen(); return; }
     openManualQrisModal(price, `Apikey ${amount} unit untuk ${botNumber}`, "apikey", { botNumber, amount }, buyer, onApproved);
   });
+  const akTransferGoProfileBtn = document.getElementById("akTransferGoProfile");
+  if (akTransferGoProfileBtn) akTransferGoProfileBtn.addEventListener("click", () => openUserProfileModal());
+  const transferBtn = document.getElementById("akTransferBtn");
+  if (transferBtn) transferBtn.addEventListener("click", async () => {
+    const oldRaw = document.getElementById("akTransferOld").value;
+    const newRaw = document.getElementById("akTransferNew").value;
+    const resultBox = document.getElementById("akTransferResult");
+    if (resultBox) resultBox.innerHTML = `<div class="muted">Memindahkan saldo di GitHub…</div>`;
+    const result = await transferApikeyBalanceRemote(oldRaw, newRaw);
+    if (!result.ok) { notify(result.message); if (resultBox) resultBox.innerHTML = `<div class="danger-text">${esc(result.message)}</div>`; return; }
+    // Sinkronkan juga bookkeeping lokal (histori pembelian di "Pesanan Saya")
+    // supaya konsisten dengan saldo NYATA yang baru saja dipindah di GitHub.
+    state.apikeys.filter((k) => normalizeOwnerNumber(k.botNumber) === result.oldNumber).forEach((k) => { k.botNumber = result.newNumber; });
+    await saveKey("wm:apikeys", state.apikeys);
+    notify(`Berhasil pindahin ${result.movedAmount} unit apikey dari ${result.oldNumber} ke ${result.newNumber}.`);
+    if (resultBox) resultBox.innerHTML = `<div class="panel"><div class="panel-title">Apikey berhasil dipindah</div><div>${result.movedAmount} unit pindah dari <span class="mono">${esc(result.oldNumber)}</span> ke <span class="mono">${esc(result.newNumber)}</span>. Sisa apikey nomor lama sekarang 0.</div></div>`;
+    document.getElementById("akTransferOld").value = "";
+    document.getElementById("akTransferNew").value = "";
+    render();
+  });
 };
+
+// Pindahin SELURUH sisa apikey (apa adanya) dari satu nomor bot ke nomor bot lain.
+// Meniru transferApikeyBalance() di lib/apikeyDb.js pada script bot Telegram:
+// - Nomor tujuan yang sudah punya sisa apikey akan DITAMBAHKAN (aditif), bukan ketimpa.
+// - Nomor lama otomatis jadi 0 setelah dipindah.
+// - { ownerOnly: true } membatasi hanya ke apikey milik user yang sedang login (dipakai di halaman publik);
+//   admin panel memanggil tanpa opsi ini supaya bisa mindahin apikey milik siapa pun.
+function transferApikeyBalance(oldNumberRaw, newNumberRaw, { ownerOnly = false } = {}) {
+  const oldNumber = normalizeOwnerNumber(oldNumberRaw);
+  const newNumber = normalizeOwnerNumber(newNumberRaw);
+  if (!oldNumber) return { ok: false, message: "Isi nomor bot LAMA yang mau dipindah." };
+  if (!newNumber) return { ok: false, message: "Isi nomor bot BARU tujuan pemindahan." };
+  if (oldNumber === newNumber) return { ok: false, message: "Nomor lama dan nomor baru sama, gak ada yang perlu dipindah." };
+
+  let candidates = state.apikeys;
+  if (ownerOnly) {
+    if (!state.currentUser) return { ok: false, message: "Masuk dulu buat mindahin apikey." };
+    if (!state.currentUser.telegramId) return { ok: false, message: "Verifikasi Telegram dulu lewat menu Profil sebelum bisa mindahin apikey." };
+    const identities = [state.currentUser.username, state.currentUser.telegramId, state.currentUser.telegramUsername].filter(Boolean);
+    candidates = candidates.filter((k) => matchesIdentity(k.buyer, identities));
+  }
+  const oldRecords = candidates.filter((k) => normalizeOwnerNumber(k.botNumber) === oldNumber);
+  const movedAmount = oldRecords.reduce((sum, k) => sum + Number(k.amount || 0), 0);
+  if (movedAmount <= 0) return { ok: false, message: "Nomor lama itu belum punya sisa apikey yang bisa dipindah." };
+
+  // Sama seperti versi bot: pindah apa adanya, nilai lama otomatis jadi 0, nilai baru ditambahkan
+  // (bukan ketimpa) kalau nomor baru sudah punya apikey sebelumnya — di sini dilakukan dengan
+  // mengganti botNumber pada tiap record yang dipindah, jadi total unit di nomor baru otomatis
+  // bertambah dan histori pembelian tetap tersimpan.
+  const buyerOfMove = oldRecords[0]?.buyer || (state.currentUser && state.currentUser.username) || "";
+  oldRecords.forEach((k) => { k.botNumber = newNumber; });
+  saveKey("wm:apikeys", state.apikeys);
+  return { ok: true, movedAmount, oldNumber, newNumber, buyer: buyerOfMove };
+}
 
 function viewApikeysAdmin() {
   const s = state.settings.apikeyShop;
@@ -1390,6 +1997,16 @@ function viewApikeysAdmin() {
       <table class="table"><thead><tr><th>Nomor Bot</th><th>Pembeli</th><th>Unit</th><th>Harga</th><th>Dipasang</th><th></th></tr></thead><tbody>
         ${state.apikeys.map((k) => `<tr><td class="mono">${esc(k.botNumber || "—")}</td><td>${esc(k.buyer)}</td><td>${Number(k.amount).toLocaleString("id-ID")}</td><td>${rupiah(k.price)}</td><td class="muted">${fmtDate(k.createdAt)}</td><td><button class="btn btn-ghost btn-danger" data-revoke-key="${k.id}">Cabut</button></td></tr>`).join("")}
       </tbody></table>`}
+      <div class="panel" style="margin-top:18px;">
+        <div class="panel-title">🔁 Pindah Apikey Nomor (Semua User)</div>
+        <p class="desc">Buat bantu user ganti nomor WA bot mereka. Memindahkan SELURUH unit apikey dari nomor lama ke nomor baru milik user manapun (gak dibatasi ke akun sendiri), aditif kalau nomor baru sudah ada sisa apikey-nya. Nomor lama otomatis jadi 0.</p>
+        <div class="form-row">
+          <input class="input" id="adminAkTransferOld" placeholder="Nomor bot LAMA" />
+          <input class="input" id="adminAkTransferNew" placeholder="Nomor bot BARU (tujuan)" />
+          <button class="btn btn-secondary" id="adminAkTransferBtn">Pindahin Apikey</button>
+        </div>
+        <div id="adminAkTransferResult"></div>
+      </div>
     </div>`;
 }
 bindHandlers["a-apikeys"] = () => {
@@ -1404,6 +2021,22 @@ bindHandlers["a-apikeys"] = () => {
     notify(remote.ok ? "Apikey dicabut & saldo GitHub dikurangi." : `Catatan dihapus, TAPI gagal mengurangi saldo GitHub: ${remote.message}`);
     render();
   }));
+  const adminTransferBtn = document.getElementById("adminAkTransferBtn");
+  if (adminTransferBtn) adminTransferBtn.addEventListener("click", async () => {
+    const oldRaw = document.getElementById("adminAkTransferOld").value;
+    const newRaw = document.getElementById("adminAkTransferNew").value;
+    const resultBox = document.getElementById("adminAkTransferResult");
+    if (resultBox) resultBox.innerHTML = `<div class="muted">Memindahkan saldo di GitHub…</div>`;
+    const result = await transferApikeyBalanceRemote(oldRaw, newRaw);
+    if (!result.ok) { notify(result.message); if (resultBox) resultBox.innerHTML = `<div class="danger-text">${esc(result.message)}</div>`; return; }
+    state.apikeys.filter((k) => normalizeOwnerNumber(k.botNumber) === result.oldNumber).forEach((k) => { k.botNumber = result.newNumber; });
+    await saveKey("wm:apikeys", state.apikeys);
+    notify(`Berhasil pindahin ${result.movedAmount} unit apikey dari ${result.oldNumber} ke ${result.newNumber}.`);
+    if (resultBox) resultBox.innerHTML = `<div class="panel"><div class="panel-title">Apikey berhasil dipindah</div><div>${result.movedAmount} unit pindah dari <span class="mono">${esc(result.oldNumber)}</span> ke <span class="mono">${esc(result.newNumber)}</span>.</div></div>`;
+    document.getElementById("adminAkTransferOld").value = "";
+    document.getElementById("adminAkTransferNew").value = "";
+    render();
+  });
 };
 
 // ---------------------------------------------------------------------------
@@ -1413,23 +2046,36 @@ bindHandlers["a-apikeys"] = () => {
 function viewQuotasPublic() {
   const s = state.settings.quotaShop;
   const promo = currentPromoText("q");
+  if (!state.currentUser) {
+    return `
+      <div class="view">
+        ${sectionHead("Quota Shop", "Beli kuota add owner", `Temp ${rupiah(s.priceTemp)}/kuota (berlaku ${s.tempDurationDays} hari), permanen ${rupiah(s.pricePermanent)}/kuota.`)}
+        <div class="empty">Masuk atau daftar dulu supaya kuota tercatat ke akunmu. Klik "Masuk / Daftar" di kanan atas.</div>
+      </div>`;
+  }
+  if (!state.currentUser.telegramId) {
+    return `
+      <div class="view">
+        ${sectionHead("Quota Shop", "Beli kuota add owner", `Temp ${rupiah(s.priceTemp)}/kuota (berlaku ${s.tempDurationDays} hari), permanen ${rupiah(s.pricePermanent)}/kuota.`)}
+        <div class="panel">
+          <div class="panel-title">Verifikasi Telegram dulu</div>
+          <p class="desc" style="margin-bottom:14px;">Kuota di sini dipakai lewat halaman "Add/Hapus Owner" yang mencocokkan Telegram ID kamu. Supaya kuota yang kamu beli tidak nyasar ke akun lain, tautkan Telegram di Profil dulu sebelum membeli.</p>
+          <button class="btn btn-primary" id="quotaGoProfile">Buka Profil</button>
+        </div>
+      </div>`;
+  }
   return `
     <div class="view">
       ${sectionHead("Quota Shop", "Beli kuota add owner", `Temp ${rupiah(s.priceTemp)}/kuota (berlaku ${s.tempDurationDays} hari), permanen ${rupiah(s.pricePermanent)}/kuota.`)}
       ${promo ? `<div class="promo-banner">📣 ${esc(promo)}</div>` : ""}
-
       <div class="panel">
-        <div class="panel-title">Cek kuota yang sudah dibeli</div>
-        <p class="desc" style="margin-bottom:10px;">Baca langsung dari database GitHub — kalau nama/ID ini sudah pernah beli, sisa kuota (permanen + temporary yang masih aktif) langsung kelihatan di sini.</p>
-        <div class="form-row">
-          <input class="input" id="qCheckBuyer" placeholder="Nama atau ID pembeli" value="${state.currentUser ? esc(state.currentUser.username) : ""}" />
-          <button class="btn btn-secondary" id="qCheckBtn">Cek kuota</button>
-        </div>
+        <div class="panel-title">Kuota kamu sekarang</div>
+        <p class="desc" style="margin-bottom:10px;">Dibaca langsung dari database GitHub, dicocokkan ke Telegram ID kamu yang sudah terverifikasi.</p>
+        <button class="btn btn-secondary" id="qCheckBtn">Cek kuota</button>
         <div id="qCheckResult" style="margin-top:10px;"></div>
       </div>
-
       <div class="form-row">
-        ${state.currentUser ? `<div class="price-tag">Beli sebagai: ${esc(state.currentUser.username)}</div>` : `<input class="input" id="qBuyer" placeholder="Nama atau ID kamu" />`}
+        <div class="price-tag">Beli sebagai: ${esc(state.currentUser.username)}</div>
         <select class="input" id="qType"><option value="temp">Temporary</option><option value="permanent">Permanent</option></select>
         <select class="input" id="qAmount">${s.tempOptions.map((o) => `<option value="${o}">${o} kuota</option>`).join("")}</select>
         <div class="price-tag" id="qPrice">${rupiah(s.priceTemp * s.tempOptions[0])}</div>
@@ -1440,22 +2086,20 @@ function viewQuotasPublic() {
     </div>`;
 }
 bindHandlers.quotas = () => {
+  const goProfileBtn = document.getElementById("quotaGoProfile");
+  if (goProfileBtn) { goProfileBtn.addEventListener("click", () => openUserProfileModal()); return; }
+  if (!state.currentUser) return;
   const s = state.settings.quotaShop;
-  const typeSel = document.getElementById("qType"), amtSel = document.getElementById("qAmount"), priceEl = document.getElementById("qPrice");
-  const refreshAmountOptions = () => { const opts = typeSel.value === "temp" ? s.tempOptions : s.permanentOptions; amtSel.innerHTML = opts.map((o) => `<option value="${o}">${o} kuota</option>`).join(""); updatePrice(); };
-  const updatePrice = () => { const unit = typeSel.value === "temp" ? s.priceTemp : s.pricePermanent; priceEl.textContent = rupiah(unit * Number(amtSel.value)); };
-  typeSel.addEventListener("change", refreshAmountOptions);
-  amtSel.addEventListener("change", updatePrice);
+  const quotaKey = state.currentUser.telegramId || state.currentUser.username;
 
-  document.getElementById("qCheckBtn").addEventListener("click", async () => {
-    const key = document.getElementById("qCheckBuyer").value.trim();
+  const checkBtn = document.getElementById("qCheckBtn");
+  if (checkBtn) checkBtn.addEventListener("click", async () => {
     const box = document.getElementById("qCheckResult");
-    if (!key) { notify("Isi dulu nama/ID pembeli."); return; }
     box.innerHTML = `<div class="muted">Membaca dari GitHub…</div>`;
-    const res = await getQuotaBalanceRemote(key);
+    const res = await getQuotaBalanceRemote(quotaKey);
     if (!res.ok) { box.innerHTML = `<div class="danger-text">Gagal cek: ${esc(res.message)}</div>`; return; }
     if (!res.found || res.extraTotal <= 0) {
-      box.innerHTML = `<div class="empty">Belum ada kuota aktif untuk nama/ID ini.</div>`;
+      box.innerHTML = `<div class="empty">Belum ada kuota aktif untuk akun ini.</div>`;
       return;
     }
     const activeTemp = res.entry.temp.filter((b) => b.expiresAt > Date.now());
@@ -1466,25 +2110,29 @@ bindHandlers.quotas = () => {
     </div>`;
   });
 
+  const typeSel = document.getElementById("qType"), amtSel = document.getElementById("qAmount"), priceEl = document.getElementById("qPrice");
+  const refreshAmountOptions = () => { const opts = typeSel.value === "temp" ? s.tempOptions : s.permanentOptions; amtSel.innerHTML = opts.map((o) => `<option value="${o}">${o} kuota</option>`).join(""); updatePrice(); };
+  const updatePrice = () => { const unit = typeSel.value === "temp" ? s.priceTemp : s.pricePermanent; priceEl.textContent = rupiah(unit * Number(amtSel.value)); };
+  typeSel.addEventListener("change", refreshAmountOptions);
+  amtSel.addEventListener("change", updatePrice);
   const buyBtn = document.getElementById("qBuyBtn");
   if (buyBtn) buyBtn.addEventListener("click", () => {
-    const buyer = state.currentUser ? state.currentUser.username : document.getElementById("qBuyer").value.trim();
-    if (!buyer) return notify("Isi nama/ID kamu dulu.");
+    const buyer = state.currentUser.username;
     const type = typeSel.value, amount = Number(amtSel.value), unit = type === "temp" ? s.priceTemp : s.pricePermanent;
     const price = unit * amount;
     const onApproved = async () => {
       await refreshManualOrderStatus("");
       // Saldo NYATA sudah ditulis ke quota_extra_db.json di GitHub saat admin
-      // ACC (lihat finalizeManualOrder) — baca ulang dari sana, bukan cuma
-      // cari-cari catatan lokal seperti sebelumnya.
-      const balance = await getQuotaBalanceRemote(buyer);
+      // ACC (lihat finalizeManualOrder), pakai key Telegram ID — baca ulang
+      // dari sana, bukan cuma cari-cari catatan lokal seperti sebelumnya.
+      const balance = await getQuotaBalanceRemote(quotaKey);
       notify(`Pembayaran disetujui, kuota ${type} x${amount} diterbitkan.`);
       document.getElementById("qResult").innerHTML = balance.ok && balance.found
         ? `<div class="panel"><div class="panel-title">Kuota kamu</div><div>Total kuota aktif sekarang: <b>${balance.extraTotal.toLocaleString("id-ID")}</b> (permanen ${balance.entry.permanent.toLocaleString("id-ID")})</div></div>`
         : `<div class="panel"><div class="panel-title">Disetujui, tapi perlu dicek</div><div>Order sudah di-ACC, tapi saldo belum bisa dibaca ulang (${esc(balance.message || "coba cek manual")}). Hubungi admin kalau kuota belum aktif.</div></div>`;
     };
     if (!manualPaymentConfigured()) { showPaymentDownScreen(); return; }
-    openManualQrisModal(price, `Kuota ${type} x${amount}`, "quota", { type, amount }, buyer, onApproved);
+    openManualQrisModal(price, `Kuota ${type} x${amount}`, "quota", { type, amount, telegramId: state.currentUser.telegramId }, buyer, onApproved);
   });
 };
 
@@ -1804,24 +2452,17 @@ bindHandlers["aiworld-config"] = () => {
 // ---------------------------------------------------------------------------
 
 function ghNormalizeRepo(repo = "") {
-  // Samain dengan normalizeRepo() di lib/verificationGithubDb.js (bot):
-  // kalau field "Repo" di Pengaturan > GitHub kepencet/kecopy-paste sebagai
-  // URL penuh (https://github.com/owner/nama-repo) alih-alih "owner/nama-repo"
-  // saja, tanpa ini website akan memanggil endpoint yang salah/404 padahal
-  // bot-nya baik-baik saja (karena bot SUDAH menormalisasi sendiri).
+  // Samain dengan normalizeRepo() di lib/verificationGithubDb.js (bot) —
+  // lihat catatan di website_database.html.
   return String(repo || "").trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$/i, "");
 }
 async function ghGetFile(repo, branch, token, path) {
   repo = ghNormalizeRepo(repo);
-  // Cache-busting: GET ke api.github.com/.../contents/... SANGAT gampang
-  // ke-cache (baik oleh browser maupun CDN GitHub sendiri), apalagi kalau
-  // dipanggil berulang-ulang tiap beberapa detik (polling status verifikasi
-  // Telegram) dengan URL yang PERSIS SAMA. Efeknya: file di GitHub SUDAH
-  // ter-update ("verified"), tapi browser/CDN masih menyodorkan salinan lama
-  // (masih "pending") ke website ini untuk sementara (bisa lama). Query
-  // param `_ts` bikin tiap request unik (cache-key beda), dan
-  // `cache: "no-store"` memaksa fetch() untuk TIDAK pakai/isi cache HTTP
-  // browser sama sekali.
+  // Cache-busting: lihat catatan di website_database.html — GET contents
+  // API GitHub gampang ke-cache (browser/CDN), padahal ini dipakai buat
+  // POLLING status verifikasi Telegram tiap beberapa detik ke URL yang
+  // sama persis. `_ts` + `cache:"no-store"` memastikan tiap poll benar-benar
+  // ambil versi TERBARU dari GitHub, bukan salinan lama yang ke-cache.
   const url = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch || "main")}&_ts=${Date.now()}`;
   const headers = { Accept: "application/vnd.github+json" };
   if (token) headers.Authorization = `token ${token}`;
@@ -1897,6 +2538,27 @@ function quotaGithubSettings() {
   const gh = state.settings.github || {};
   return { repo: (gh.repo || "").trim(), branch: (gh.branch || "main").trim() || "main", token: (gh.token || "").trim(), path: (gh.quotaDbPath || DEFAULT_QUOTA_DB_PATH).trim() };
 }
+// Kode verifikasi Telegram (BUKAN Supabase lagi) — file JSON terpisah di
+// repo GitHub yang SAMA (repo/branch/token dari Pengaturan > GitHub),
+// path-nya bisa diatur lewat github.verificationsDbPath.
+const DEFAULT_VERIFICATIONS_DB_PATH = "database/additional/verifications_db.json";
+function verificationGithubSettings() {
+  // Kartu "GitHub Verifikasi Telegram" (Pengaturan > GitHub) punya repo/
+  // akun/token SENDIRI, terpisah dari Database Utama. Kalau kartu itu diisi
+  // (repo-nya tidak kosong), pakai SEPENUHNYA dari situ. Kalau dikosongkan,
+  // fallback 100% ke repo/branch/token Database Utama (githubVerification
+  // dianggap belum dipakai).
+  const gv = state.settings.githubVerification || {};
+  const gh = state.settings.github || {};
+  const useSeparate = !!(gv.repo || "").trim();
+  const src = useSeparate ? gv : gh;
+  return {
+    repo: (src.repo || "").trim(),
+    branch: (src.branch || "main").trim() || "main",
+    token: (src.token || "").trim(),
+    path: (gv.path || gh.verificationsDbPath || DEFAULT_VERIFICATIONS_DB_PATH).trim(),
+  };
+}
 
 async function ghGetJson(repo, branch, token, path) {
   // null = file belum pernah ada di repo (404) -> dianggap database kosong,
@@ -1931,26 +2593,6 @@ async function getApikeyBalanceRemote(botNumber) {
     const found = !!(data && data.numbers && data.numbers[n]);
     const entry = ensureApikeyEntryShape(data && data.numbers ? data.numbers[n] : null);
     return { ok: true, entry, found };
-  } catch (e) { return { ok: false, message: e.message }; }
-}
-
-// Total AGREGAT seluruh nomor di apikey_db.json — dipakai buat kartu
-// statistik dashboard ("Unit apikey terjual") supaya angkanya beneran baca
-// database GitHub, bukan cuma catatan lokal browser.
-async function getApikeyDbTotalsRemote() {
-  const cfg = apikeyGithubSettings();
-  if (!cfg.repo) return { ok: false, message: "Repo GitHub belum diisi." };
-  try {
-    const { data } = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path);
-    const numbers = (data && data.numbers) || {};
-    let totalPurchased = 0, totalActiveBalance = 0, activeNumbers = 0;
-    for (const raw of Object.values(numbers)) {
-      const e = ensureApikeyEntryShape(raw);
-      totalPurchased += e.totalPurchased;
-      totalActiveBalance += e.balance;
-      if (e.balance > 0) activeNumbers++;
-    }
-    return { ok: true, totalPurchased, totalActiveBalance, activeNumbers };
   } catch (e) { return { ok: false, message: e.message }; }
 }
 
@@ -2075,18 +2717,16 @@ async function revokeApikeyBalanceRemote(botNumber, amount, commitMessage, retri
   return { ok: false, message: "Gagal mencabut apikey setelah beberapa kali percobaan (bentrok terus-menerus, coba lagi)." };
 }
 
-// Helper dipakai kedua kartu dashboard (publik & admin): baca total NYATA
-// dari GitHub lalu timpa angka countup lokal begitu selesai — jadi kalau
+// Helper dipakai kartu dashboard admin: baca total kuota addowner dari role
+// (GitHub) lalu timpa angka countup lokal begitu selesai — jadi kalau
 // GitHub belum diisi/gagal, angka lokal (fallback) tetap kelihatan duluan,
 // tidak blank.
 async function refreshGithubDashboardStats() {
-  const soldEl = document.getElementById("statApikeySold");
-  const quotaEl = document.getElementById("statQuotaActive");
-  if (!soldEl && !quotaEl) return;
+  const roleQuotaEl = document.getElementById("statRoleQuotaActive");
+  if (!roleQuotaEl) return;
   const wait700 = new Promise((r) => setTimeout(r, 700)); // pastikan animateCountUps() (durasi 650ms) sudah selesai dulu, supaya angka NYATA dari GitHub ini tidak ketiban timpa animasi angka lokal
-  const [[ak, q]] = await Promise.all([Promise.all([getApikeyDbTotalsRemote(), getQuotaDbTotalsRemote()]), wait700]);
-  if (soldEl) soldEl.textContent = ak.ok ? ak.totalPurchased.toLocaleString("id-ID") : soldEl.textContent;
-  if (quotaEl) quotaEl.textContent = q.ok ? q.activeTotal.toLocaleString("id-ID") : quotaEl.textContent;
+  const [rq] = await Promise.all([getRoleQuotaTotalsRemote(), wait700]);
+  roleQuotaEl.textContent = rq.ok ? rq.totalGranted.toLocaleString("id-ID") : roleQuotaEl.textContent;
 }
 
 // ---- Quota DB (GitHub) — pola read-modify-write yang sama, tapi per
@@ -2111,24 +2751,6 @@ function ensureQuotaEntryShape(entry) {
 function quotaExtraTotal(entry) {
   const t = Date.now();
   return entry.permanent + entry.temp.filter((b) => b.expiresAt > t).reduce((a, b) => a + b.amount, 0);
-}
-// Total AGREGAT seluruh user di quota_extra_db.json — dipakai buat kartu
-// statistik dashboard ("Kuota addowner aktif").
-async function getQuotaDbTotalsRemote() {
-  const cfg = quotaGithubSettings();
-  if (!cfg.repo) return { ok: false, message: "Repo GitHub belum diisi." };
-  try {
-    const { data } = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path);
-    const users = (data && data.users) || {};
-    let activeTotal = 0, activeUsers = 0;
-    for (const raw of Object.values(users)) {
-      const e = ensureQuotaEntryShape(raw);
-      const t = quotaExtraTotal(e);
-      activeTotal += t;
-      if (t > 0) activeUsers++;
-    }
-    return { ok: true, activeTotal, activeUsers };
-  } catch (e) { return { ok: false, message: e.message }; }
 }
 async function getQuotaBalanceRemote(buyerKey) {
   const cfg = quotaGithubSettings();
@@ -2222,6 +2844,207 @@ async function revokeQuotaBalanceRemote(buyerKey, type, amount, commitMessage, r
     }
   }
   return { ok: false, message: "Gagal menghapus quota setelah beberapa kali percobaan (bentrok terus-menerus, coba lagi)." };
+}
+
+// ---------------------------------------------------------------------------
+// Kuota addowner DARI ROLE (bukan dari pembelian) — dibaca LANGSUNG dari
+// owner_db.json + role_db.json yang asli (yang beneran ditulis bot lewat
+// lib/ownerDb.js & lib/roleDb.js). Dua-duanya sudah 100% berbasis GitHub di
+// sisi bot, jadi TIDAK butuh jembatan lokal apa pun seperti kuota
+// beli/addExtraQuota — begitu bot nulis ke GitHub, angka di sini otomatis
+// ikut berubah begitu halaman ini di-refresh.
+//
+// Jatah dasar per role SAMA PERSIS dengan DEFAULT_ADDOWNER_QUOTA di
+// lib/ownerDb.js bot kamu. Kalau kamu ubah quotaMap di bot, ubah juga di
+// sini biar angkanya tetap match.
+// ---------------------------------------------------------------------------
+
+const DEFAULT_ADDOWNER_QUOTA = {
+  FULL_UP: 1,
+  RESSELER: 2,
+  PARTNER: 4,
+  OWNER: 5,
+  STAFF: 1000,
+  DEVELOPER: 5000,
+};
+
+// Repo Role DB kamu (isian langsung dari kamu: "WorldMarket-dtb/khususrolemd").
+// Ini dipakai sebagai fallback TERAKHIR kalau kartu "Database Role" di
+// Pengaturan > GitHub belum/tidak diisi apa-apa (baik di admin maupun kalau
+// setting tersimpan lama di Supabase masih kosong). Kalau kamu ganti nama
+// repo Role DB di kemudian hari, ganti juga nilai ini.
+const DEFAULT_ROLE_DB_REPO = "WorldMarket-dtb/khususrolemd";
+
+// ---------------------------------------------------------------------------
+// Override Role DEVELOPER manual dari Admin Panel (maks. 5 Telegram ID) —
+// lihat kartu "Override Role DEVELOPER" di Pengaturan > GitHub. Kalau
+// Telegram ID user ada di daftar ini, website MEMAKSA role dia jadi
+// DEVELOPER, apa pun yang tertulis di role_db.json (GitHub) — bahkan kalau
+// di sana dia NONE / belum pernah diset sama sekali. Murni override sisi
+// website, tidak menyentuh role_db.json ataupun bot Telegram.
+// ---------------------------------------------------------------------------
+function getDeveloperOverrideIds() {
+  const raw = Array.isArray(state.settings?.developerOverride?.ids) ? state.settings.developerOverride.ids : [];
+  const cleaned = Array.from(new Set(raw.map((x) => String(x || "").replace(/\D/g, "")).filter(Boolean)));
+  return cleaned.slice(0, 5);
+}
+
+function renderDevOverrideList() {
+  const el = document.getElementById("devOverrideList");
+  if (!el) return;
+  const ids = getDeveloperOverrideIds();
+  if (!ids.length) {
+    el.innerHTML = `<div class="muted" style="font-size:13px;">Belum ada ID di daftar override (0/5).</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="muted" style="font-size:12px;margin-bottom:6px;">${ids.length}/5 ID terpasang:</div>` +
+    ids.map((id) => `<div class="kv"><span class="mono">${esc(id)}</span><button class="btn btn-ghost btn-danger" data-remove-dev-override="${esc(id)}" style="padding:4px 10px;">Hapus</button></div>`).join("");
+  el.querySelectorAll("[data-remove-dev-override]").forEach((btn) => btn.addEventListener("click", async () => {
+    const id = btn.dataset.removeDevOverride;
+    const list = getDeveloperOverrideIds().filter((x) => x !== id);
+    state.settings.developerOverride = { ids: list };
+    const statusEl = document.getElementById("devOverrideStatus");
+    if (statusEl) { statusEl.textContent = "Menyimpan…"; statusEl.className = "muted"; }
+    await saveSettingsWithConfirmation("devOverrideStatus");
+    renderDevOverrideList();
+  }));
+}
+
+function rolesGithubSettings() {
+  const ghr = state.settings.githubRoles || {};
+  const gh = state.settings.github || {}; // fallback: Database Utama
+  // Urutan prioritas repo: (1) kartu "Database Role" kalau diisi manual di
+  // Pengaturan > GitHub, (2) kartu "Database Utama" kalau Role DB kosong
+  // (persis pola yang sudah dipakai buat path Apikey/Quota), (3) fallback
+  // terakhir ke DEFAULT_ROLE_DB_REPO di atas biar tetap kebaca walau belum
+  // ada satupun yang diisi/tersimpan.
+  const repo = (ghr.repo || gh.repo || DEFAULT_ROLE_DB_REPO).trim();
+  const branch = (ghr.branch || gh.branch || "main").trim() || "main";
+  // PENTING: token TIDAK di-hardcode di sini (token itu rahasia, bukan hal
+  // yang aman ditaruh di source code publik). Kalau repo Role DB kamu
+  // PRIVATE, kamu tetap wajib isi token di kartu "Database Role" (atau
+  // "Database Utama" sebagai fallback) di Pengaturan > GitHub — kalau
+  // repo-nya PUBLIC, dibiarkan kosong pun tetap bisa kebaca.
+  const token = (ghr.token || gh.token || "").trim();
+  const path = (ghr.path || "database/additional/role_db.json").trim();
+  return { repo, branch, token, path };
+}
+function ownerDbGithubSettings() {
+  const gh = state.settings.github || {};
+  return { repo: (gh.repo || "").trim(), branch: (gh.branch || "main").trim() || "main", token: (gh.token || "").trim(), path: (gh.ownerDbPath || "database/additional/owner_db.json").trim() };
+}
+
+// Baca role_db.json APA ADANYA -> { "<nomor>": "ROLE_KEY" }
+// Sekalian ambil roles_tg (key = telegram user id) & roles_tg_usernames
+// (key = @username tanpa "@", lowercase) — dua field ini yang ditulis bot
+// Telegram (lihat telegram_bot/roleDbTelegram.js), dipakai buat deteksi
+// role otomatis dari akun website yang sudah tertaut Telegram.
+async function fetchRoleDbRemote() {
+  const cfg = rolesGithubSettings();
+  if (!cfg.repo) return { ok: false, roles: {}, rolesTg: {}, rolesTgUsernames: {}, message: "Repo Role DB belum diisi di Pengaturan > GitHub." };
+  try {
+    const { data } = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path);
+    const roles = (data && data.roles && typeof data.roles === "object") ? data.roles : {};
+    const rolesTg = (data && data.roles_tg && typeof data.roles_tg === "object") ? data.roles_tg : {};
+    const rolesTgUsernames = (data && data.roles_tg_usernames && typeof data.roles_tg_usernames === "object") ? data.roles_tg_usernames : {};
+    return { ok: true, roles, rolesTg, rolesTgUsernames };
+  } catch (e) { return { ok: false, roles: {}, rolesTg: {}, rolesTgUsernames: {}, message: e.message }; }
+}
+
+// Deteksi role Telegram user yang sudah terverifikasi/tertaut ke akun
+// website (state.currentUser.telegramId / telegramUsername), lalu hitung
+// jatah kuota addowner dasarnya — SAMA PERSIS logika bot: cek roles_tg
+// (by user id) dulu, kalau kosong baru fallback ke roles_tg_usernames
+// (by @username). Hasilnya dipakai getMyOwnerQuotaInfo() supaya kuota
+// addowner otomatis "ngikutin" role (contoh: FULL UP -> jatah 1, RESSELER
+// -> jatah 2, dst, sesuai DEFAULT_ADDOWNER_QUOTA di atas).
+async function fetchMyRoleQuota(telegramId, telegramUsername) {
+  const tgId = String(telegramId || "").replace(/\D/g, "");
+  const uname = String(telegramUsername || "").trim().replace(/^@/, "").toLowerCase();
+  if (!tgId && !uname) return { ok: false, role: "NONE", baseQuota: 0, message: "Telegram belum tertaut." };
+
+  // Override Admin Panel menang mutlak, dicek DULUAN sebelum ke GitHub sama
+  // sekali — jadi tetap jalan walau Repo Role DB belum/gak kesambung.
+  if (tgId && getDeveloperOverrideIds().includes(tgId)) {
+    return { ok: true, role: "DEVELOPER", baseQuota: DEFAULT_ADDOWNER_QUOTA.DEVELOPER, isOverride: true };
+  }
+
+  const cfg = rolesGithubSettings();
+  if (!cfg.repo) return { ok: false, role: "NONE", baseQuota: 0, message: "Repo Role DB belum diisi di Pengaturan > GitHub." };
+
+  const rr = await fetchRoleDbRemote();
+  if (!rr.ok) return { ok: false, role: "NONE", baseQuota: 0, message: rr.message };
+
+  let rawRole = "";
+  if (tgId && rr.rolesTg[tgId]) rawRole = rr.rolesTg[tgId];
+  if (!rawRole && uname && rr.rolesTgUsernames[uname]) rawRole = rr.rolesTgUsernames[uname];
+
+  const role = String(rawRole || "NONE").trim().toUpperCase().replace(/[-\s]+/g, "_") || "NONE";
+  const baseQuota = Number.isFinite(DEFAULT_ADDOWNER_QUOTA[role]) ? DEFAULT_ADDOWNER_QUOTA[role] : 0;
+  return { ok: true, role, baseQuota };
+}
+
+function formatRoleLabel(role) {
+  const r = String(role || "NONE").trim().toUpperCase();
+  if (r === "FULL_UP") return "FULL UP";
+  if (r === "RESSELER") return "RESSELER";
+  if (r === "PARTNER") return "PARTNER";
+  if (r === "STAFF") return "STAFF";
+  if (r === "OWNER") return "OWNER";
+  if (r === "DEVELOPER") return "DEVELOPER";
+  return "NONE";
+}
+
+// Baca owner_db.json APA ADANYA -> { allowedOwners: [...], addedBy: { "<invoker>": [...] } }
+async function fetchOwnerDbRemote() {
+  const cfg = ownerDbGithubSettings();
+  if (!cfg.repo) return { ok: false, allowedOwners: [], addedBy: {}, message: "Repo database utama belum diisi di Pengaturan > GitHub." };
+  try {
+    const { data } = await ghGetJson(cfg.repo, cfg.branch, cfg.token, cfg.path);
+    const allowedOwners = Array.isArray(data && data.allowedOwners) ? data.allowedOwners : [];
+    const addedBy = (data && data.addedBy && typeof data.addedBy === "object") ? data.addedBy : {};
+    return { ok: true, allowedOwners, addedBy };
+  } catch (e) { return { ok: false, allowedOwners: [], addedBy: {}, message: e.message }; }
+}
+
+// Total AGREGAT kuota addowner yang berasal dari ROLE (bukan dari pembelian) —
+// dipakai buat kartu statistik dashboard ("Kuota dari Role") dan buat rincian
+// per-role di Admin Console. Untuk tiap nomor yang punya role di role_db.json:
+//   jatah   = DEFAULT_ADDOWNER_QUOTA[role]  (0 kalau role tidak dikenali/NONE)
+//   dipakai = jumlah unique nomor di addedBy[nomor] yang MASIH ada di allowedOwners
+//   sisa    = max(0, jatah - dipakai)
+async function getRoleQuotaTotalsRemote() {
+  const [roleRes, ownerRes] = await Promise.all([fetchRoleDbRemote(), fetchOwnerDbRemote()]);
+  if (!roleRes.ok) return { ok: false, message: roleRes.message };
+  if (!ownerRes.ok) return { ok: false, message: ownerRes.message };
+
+  const allowedSet = new Set(ownerRes.allowedOwners.map((x) => String(x || "").replace(/\D/g, "")));
+  const byRole = {};
+  let totalGranted = 0, totalUsed = 0, totalRemaining = 0, roleHolderCount = 0;
+
+  for (const [number, rawRole] of Object.entries(roleRes.roles)) {
+    const role = String(rawRole || "").trim().toUpperCase().replace(/[-\s]+/g, "_");
+    const jatah = Number.isFinite(DEFAULT_ADDOWNER_QUOTA[role]) ? DEFAULT_ADDOWNER_QUOTA[role] : 0;
+    if (jatah <= 0) continue; // role NONE atau tidak dikenali -> tidak ikut dihitung
+
+    const rawList = Array.isArray(ownerRes.addedBy[number]) ? ownerRes.addedBy[number] : [];
+    const uniqUsed = new Set(rawList.map((x) => String(x || "").replace(/\D/g, "")).filter((x) => x && allowedSet.has(x)));
+    const dipakai = uniqUsed.size;
+    const sisa = Math.max(0, jatah - dipakai);
+
+    roleHolderCount++;
+    totalGranted += jatah;
+    totalUsed += Math.min(dipakai, jatah);
+    totalRemaining += sisa;
+
+    if (!byRole[role]) byRole[role] = { role, holders: 0, granted: 0, used: 0, remaining: 0 };
+    byRole[role].holders++;
+    byRole[role].granted += jatah;
+    byRole[role].used += Math.min(dipakai, jatah);
+    byRole[role].remaining += sisa;
+  }
+
+  return { ok: true, totalGranted, totalUsed, totalRemaining, roleHolderCount, byRole: Object.values(byRole).sort((a, b) => b.granted - a.granted) };
 }
 
 // ---------------------------------------------------------------------------
@@ -2613,101 +3436,6 @@ bindHandlers["settings-general"] = () => {
   });
 };
 
-function viewSettingsSession() {
-  const sl = state.settings.sessionLogin || { enabled: true, videoUrl: "", durationMs: 2500 };
-  const isDataVideo = (sl.videoUrl || "").startsWith("data:video/");
-  return `
-    <div class="view">
-      ${sectionHead("Admin · Sesi & Video Loading", "Auto-login device & video pembuka", "Kalau device (browser) yang sama pernah login sebelumnya, pengunjung akan otomatis diverifikasi ulang tanpa perlu ketik username/password lagi — muncul layar besar \"VERIFIKASI SESI LOGIN SEBELUMNYA\" selama proses cek berlangsung. Setelah login (baik otomatis maupun manual) berhasil diverifikasi, situs bisa menampilkan video (mp4) loading sebelum masuk ke dashboard. Atur videonya di sini.", true)}
-      <div class="panel">
-        <div class="panel-title">Video loading setelah login berhasil</div>
-        <p class="desc" style="margin-bottom:14px;">Video ini muncul layar penuh sesaat setelah pengunjung berhasil login/verifikasi sesi, sebelum tampilan toko muncul. Kosongkan/hapus videonya kalau tidak mau pakai video sama sekali — proses login tetap jalan seperti biasa tanpa layar video.</p>
-        <div class="grid-2">
-          <label class="field">
-            <span>Aktifkan video loading?</span>
-            <select class="input" id="slEnabled">
-              <option value="1" ${sl.enabled !== false ? "selected" : ""}>Aktif</option>
-              <option value="0" ${sl.enabled === false ? "selected" : ""}>Nonaktif</option>
-            </select>
-          </label>
-          <label class="field"><span>Durasi tampil (detik)</span><input class="input" type="number" min="1" step="0.5" id="slDuration" value="${(Number(sl.durationMs) || 2500) / 1000}" /></label>
-        </div>
-        <label class="field">
-          <span>Upload video langsung dari HP/komputer (.mp4)</span>
-          <input class="input" type="file" accept="video/mp4,video/*" id="slVideoFile" />
-        </label>
-        <p class="desc" style="margin:2px 0 10px;">Maksimal <strong>5 MB</strong> dan usahakan durasi pendek (2–5 detik cukup) — videonya disimpan langsung di dalam database situs (base64), jadi kalau terlalu besar bisa bikin situs berat/gagal tersimpan. Kalau video kamu masih kebesaran, kompres dulu pakai aplikasi HP biasa (misalnya fitur "Kompres Video" di galeri, atau convert lewat aplikasi seperti VN/CapCut) sebelum upload.</p>
-        <label class="field">
-          <span>Atau isi link video (.mp4) kalau sudah punya hosting sendiri — opsional</span>
-          <input class="input" id="slVideoUrl" value="${!isDataVideo ? esc(sl.videoUrl || "") : ""}" placeholder="https://contoh.com/loading.mp4" />
-        </label>
-        <div id="slPreviewWrap" style="margin-top:10px;">
-          ${sl.videoUrl ? `<video id="slPreview" src="${esc(sl.videoUrl)}" muted loop autoplay playsinline style="width:100%; max-width:340px; border-radius:10px; border:1px solid var(--border);"></video>${isDataVideo ? `<div style="margin-top:6px;"><button class="btn btn-ghost btn-danger" id="slRemoveVideoBtn" type="button">Hapus video terupload</button></div>` : ""}` : `<div class="muted" style="font-size:13px;" id="slPreviewEmpty">Belum ada video diisi.</div>`}
-        </div>
-        <div id="slFileStatus" class="muted" style="font-size:12.5px; margin-top:6px;"></div>
-        <div class="form-row" style="margin-top:10px;">
-          <button class="btn btn-violet" id="slSaveBtn">Simpan Konfigurasi</button>
-        </div>
-        <div id="slSaveStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
-      </div>
-    </div>`;
-}
-bindHandlers["settings-session"] = () => {
-  if (!state.settings.sessionLogin) state.settings.sessionLogin = { enabled: true, videoUrl: "", durationMs: 2500 };
-  const sl = state.settings.sessionLogin;
-  const urlInput = document.getElementById("slVideoUrl");
-  const fileInput = document.getElementById("slVideoFile");
-  const MAX_VIDEO_BYTES = 5 * 1024 * 1024; // 5 MB — dijaga kecil supaya aman untuk localStorage & database (jsonb)
-  let pendingUploadedVideo = null; // dataURL hasil upload file, menang atas isian link kalau ada
-
-  const renderPreview = (videoSrc, isUploaded) => {
-    const wrap = document.getElementById("slPreviewWrap");
-    wrap.innerHTML = videoSrc
-      ? `<video id="slPreview" src="${esc(videoSrc)}" muted loop autoplay playsinline style="width:100%; max-width:340px; border-radius:10px; border:1px solid var(--border);"></video>${isUploaded ? `<div style="margin-top:6px;"><button class="btn btn-ghost btn-danger" id="slRemoveVideoBtn" type="button">Hapus video terupload</button></div>` : ""}`
-      : `<div class="muted" style="font-size:13px;" id="slPreviewEmpty">Belum ada video diisi.</div>`;
-    const removeBtn = document.getElementById("slRemoveVideoBtn");
-    if (removeBtn) removeBtn.addEventListener("click", () => {
-      pendingUploadedVideo = ""; fileInput.value = "";
-      document.getElementById("slFileStatus").textContent = "Video terupload akan dihapus setelah kamu klik \"Simpan Konfigurasi\".";
-      renderPreview("", false);
-    });
-  };
-
-  urlInput.addEventListener("change", () => {
-    if (urlInput.value.trim()) { pendingUploadedVideo = null; fileInput.value = ""; document.getElementById("slFileStatus").textContent = ""; }
-    renderPreview(urlInput.value.trim(), false);
-  });
-
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files[0];
-    const statusEl = document.getElementById("slFileStatus");
-    if (!file) return;
-    if (!file.type.startsWith("video/")) { statusEl.textContent = "File yang dipilih bukan video. Pilih file .mp4."; fileInput.value = ""; return; }
-    if (file.size > MAX_VIDEO_BYTES) {
-      statusEl.textContent = `File terlalu besar (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimal 5 MB — kompres dulu videonya lalu upload ulang.`;
-      fileInput.value = "";
-      return;
-    }
-    statusEl.textContent = "Memproses video…";
-    try {
-      const dataUrl = await fileToDataUrl(file);
-      pendingUploadedVideo = dataUrl;
-      urlInput.value = "";
-      statusEl.textContent = `Video siap (${(file.size / 1024 / 1024).toFixed(1)} MB). Klik "Simpan Konfigurasi" untuk menyimpannya.`;
-      renderPreview(dataUrl, true);
-    } catch (e) { statusEl.textContent = "Gagal membaca file video: " + e.message; }
-  });
-
-  document.getElementById("slSaveBtn").addEventListener("click", async () => {
-    sl.enabled = document.getElementById("slEnabled").value === "1";
-    if (pendingUploadedVideo !== null) sl.videoUrl = pendingUploadedVideo;
-    else if (urlInput.value.trim()) sl.videoUrl = urlInput.value.trim();
-    const durationSec = Number(document.getElementById("slDuration").value);
-    sl.durationMs = Number.isFinite(durationSec) && durationSec > 0 ? Math.round(durationSec * 1000) : 2500;
-    await saveSettingsWithConfirmation("slSaveStatus");
-  });
-};
-
 function viewSettingsGithub() {
   const gh = state.settings.github;
   const ghr = state.settings.githubRoles;
@@ -2726,6 +3454,7 @@ function viewSettingsGithub() {
           <label class="field"><span>Path file database utama</span><input class="input" id="ghPath" value="${esc(gh.path)}" /></label>
           <label class="field"><span>Path Apikey DB (dibaca bot WORLD MD)</span><input class="input" id="ghApikeyDbPath" value="${esc(gh.apikeyDbPath || 'database/additional/apikey_db.json')}" /></label>
           <label class="field"><span>Path Quota DB</span><input class="input" id="ghQuotaDbPath" value="${esc(gh.quotaDbPath || 'database/additional/quota_extra_db.json')}" /></label>
+          <label class="field"><span>Path Owner DB (dibaca bot WORLD MD, buat hitung kuota per role)</span><input class="input" id="ghOwnerDbPath" value="${esc(gh.ownerDbPath || 'database/additional/owner_db.json')}" /></label>
         </div>
         <div class="form-row" style="margin-top:10px;">
           <button class="btn btn-violet" id="ghSaveConfigBtn">Simpan Konfigurasi</button>
@@ -2751,6 +3480,17 @@ function viewSettingsGithub() {
         </div>
         <div id="ghrSaveStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
         <div id="ghrBackupStatus" class="muted" style="font-size:13px; margin-top:4px;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Override Role DEVELOPER (khusus website, maks. 5 ID)</div>
+        <p class="desc" style="margin-bottom:14px;">Tempel Telegram ID (angka, BUKAN username) yang mau kamu paksa jadi role <strong>DEVELOPER</strong> di website ini — apa pun role ID itu di <code>role_db.json</code> (GitHub), termasuk kalau di GitHub rolenya lebih rendah atau bahkan belum diset sama sekali (NONE), website tetap anggap dia DEVELOPER (dapat jatah kuota addowner ${DEFAULT_ADDOWNER_QUOTA.DEVELOPER}). Ini murni override sisi website — <strong>tidak mengubah</strong> isi <code>role_db.json</code> ataupun cara bot Telegram-nya menilai role. Maksimal 5 ID.</p>
+        <div class="form-row">
+          <input class="input" id="devOverrideIdInput" placeholder="Telegram ID, contoh 123456789" inputmode="numeric" />
+          <button class="btn btn-violet" id="devOverrideAddBtn">Tambah</button>
+        </div>
+        <div id="devOverrideList" style="margin-top:12px;"></div>
+        <div id="devOverrideStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
       </div>
 
       <div class="panel">
@@ -2783,6 +3523,7 @@ bindHandlers["settings-github"] = () => {
     gh.path = document.getElementById("ghPath").value.trim() || "worldmarket-database.json";
     gh.apikeyDbPath = document.getElementById("ghApikeyDbPath").value.trim() || "database/additional/apikey_db.json";
     gh.quotaDbPath = document.getElementById("ghQuotaDbPath").value.trim() || "database/additional/quota_extra_db.json";
+    gh.ownerDbPath = document.getElementById("ghOwnerDbPath").value.trim() || "database/additional/owner_db.json";
     await saveSettingsWithConfirmation("ghSaveStatus");
   });
   document.getElementById("ghBackupBtn").addEventListener("click", async () => {
@@ -2812,6 +3553,26 @@ bindHandlers["settings-github"] = () => {
       await ghPutFile(ghr.repo, ghr.branch, ghr.token, ghr.path, buildRolesExport(), sha, "Backup Role DB dari WorldMarket Panel");
       statusEl.textContent = `Berhasil disimpan ke ${ghr.repo}/${ghr.path}.`; statusEl.className = "ok-text";
     } catch (e) { statusEl.textContent = "Gagal backup: " + e.message; statusEl.className = "danger-text"; }
+  });
+
+  renderDevOverrideList();
+  document.getElementById("devOverrideAddBtn").addEventListener("click", async () => {
+    const statusEl = document.getElementById("devOverrideStatus");
+    const input = document.getElementById("devOverrideIdInput");
+    const raw = String(input.value || "").replace(/\D/g, "");
+    if (!raw) { statusEl.textContent = "Isi Telegram ID (angka) dulu."; statusEl.className = "danger-text"; return; }
+    const list = getDeveloperOverrideIds();
+    if (list.includes(raw)) { statusEl.textContent = `ID ${raw} sudah ada di daftar.`; statusEl.className = "danger-text"; return; }
+    if (list.length >= 5) { statusEl.textContent = "Sudah maksimal 5 ID. Hapus salah satu dulu kalau mau ganti."; statusEl.className = "danger-text"; return; }
+    list.push(raw);
+    state.settings.developerOverride = { ids: list };
+    input.value = "";
+    statusEl.textContent = "Menyimpan…"; statusEl.className = "muted";
+    await saveSettingsWithConfirmation("devOverrideStatus");
+    renderDevOverrideList();
+  });
+  document.getElementById("devOverrideIdInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("devOverrideAddBtn").click();
   });
 
   document.getElementById("gvSaveConfigBtn").addEventListener("click", async () => {
@@ -2952,10 +3713,10 @@ function viewSettingsSupabase() {
         <div id="sbStatus" class="muted" style="font-size:13px; margin-top:10px;"></div>
       </div>
 
-      <div class="panel" id="sqlSetupPanel">
+      <div class="panel">
         <div class="panel-title">SQL setup</div>
-        <p class="desc" style="margin-bottom:14px;">Cukup satu tabel generik untuk semuanya — jalankan sekali lewat SQL Editor di Supabase. Anon key (dipakai browser) sengaja <strong>tidak diizinkan</strong> membuat tabel sendiri (proteksi Supabase), jadi langkah ini memang harus manual sekali di awal:</p>
-        <pre class="mono" id="sqlSetupBlock" style="background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:11.5px; overflow-x:auto; white-space:pre;">create table if not exists public.${esc(sb.table || "kv_worldmd")} (
+        <p class="desc" style="margin-bottom:14px;">Cukup satu tabel generik untuk semuanya — jalankan sekali lewat SQL Editor di Supabase:</p>
+        <pre class="mono" style="background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:11.5px; overflow-x:auto; white-space:pre;">create table if not exists public.${esc(sb.table || "kv_worldmd")} (
   key text primary key,
   value jsonb not null,
   updated_at timestamptz not null default now()
@@ -2963,66 +3724,18 @@ function viewSettingsSupabase() {
 alter table public.${esc(sb.table || "kv_worldmd")} enable row level security;
 create policy "wm allow anon" on public.${esc(sb.table || "kv_worldmd")}
   for all using (true) with check (true);</pre>
-        <div class="form-row" style="margin-top:10px;">
-          <button class="btn btn-secondary" id="sqlCopyBtn">Salin SQL</button>
-          <button class="btn btn-secondary" id="sqlEditorBtn">Buka SQL Editor Supabase ↗</button>
-        </div>
-        <div id="sqlCopyStatus" class="muted" style="font-size:13px; margin-top:8px;"></div>
-        <p class="desc" style="margin-top:14px;">Policy di atas sengaja permisif (bisa dibaca & ditulis siapa saja yang tahu anon key) karena panel ini memakai anon key dari sisi browser, bukan autentikasi server sungguhan. Ini trade-off yang disengaja supaya semua pengunjung bisa otomatis mendapat pengaturan terbaru tanpa server tambahan — konsekuensinya, siapa pun yang cukup teliti membuka DevTools bisa melihat (dan secara teknis mengubah) isi tabel ini, termasuk token GitHub, API key payment, dan API key AI yang kamu simpan di Pengaturan. Gunakan token/API key dengan scope seminimal mungkin, dan rotasi berkala.</p>
+        <p class="desc">Policy di atas sengaja permisif (bisa dibaca & ditulis siapa saja yang tahu anon key) karena panel ini memakai anon key dari sisi browser, bukan autentikasi server sungguhan. Ini trade-off yang disengaja supaya semua pengunjung bisa otomatis mendapat pengaturan terbaru tanpa server tambahan — konsekuensinya, siapa pun yang cukup teliti membuka DevTools bisa melihat (dan secara teknis mengubah) isi tabel ini, termasuk token GitHub, API key payment, dan API key AI yang kamu simpan di Pengaturan. Gunakan token/API key dengan scope seminimal mungkin, dan rotasi berkala.</p>
         <p class="desc" style="margin-top:10px;">Tabel yang sama dipakai bareng <strong>bot Telegram verifikasi</strong> (folder <code>bot/</code>) lewat key <code>wm_bot_groups</code> di dalamnya. Kode verifikasi Telegram sendiri sekarang disimpan di file GitHub (Pengaturan &gt; GitHub), bukan di tabel Supabase ini lagi.</p>
       </div>
     </div>`;
 }
-function supabaseProjectRef(url) {
-  try { return new URL(url).hostname.split(".")[0] || ""; } catch { return ""; }
-}
 bindHandlers["settings-supabase"] = () => {
   const sb = state.settings.supabase;
-
-  function flashSqlPanel(showCta) {
-    const panel = document.getElementById("sqlSetupPanel");
-    if (!panel) return;
-    panel.scrollIntoView({ behavior: "smooth", block: "start" });
-    panel.style.transition = "box-shadow .3s, border-color .3s";
-    panel.style.boxShadow = "0 0 0 2px var(--red)";
-    panel.style.borderColor = "var(--red)";
-    setTimeout(() => { panel.style.boxShadow = ""; panel.style.borderColor = ""; }, 2200);
-  }
-
-  document.getElementById("sqlCopyBtn").addEventListener("click", async () => {
-    const sqlText = document.getElementById("sqlSetupBlock").textContent;
-    const statusEl = document.getElementById("sqlCopyStatus");
-    try {
-      await navigator.clipboard.writeText(sqlText);
-      statusEl.textContent = "SQL disalin. Tempel di Supabase → SQL Editor → Run."; statusEl.className = "ok-text";
-    } catch {
-      statusEl.textContent = "Gagal menyalin otomatis — seleksi & salin manual dari kotak di atas."; statusEl.className = "danger-text";
-    }
-  });
-  document.getElementById("sqlEditorBtn").addEventListener("click", () => {
-    const url = document.getElementById("sbUrl").value.trim();
-    const ref = supabaseProjectRef(url);
-    const dest = ref ? `https://supabase.com/dashboard/project/${ref}/sql/new` : "https://supabase.com/dashboard";
-    if (!ref) notify("Isi Project URL dulu supaya bisa langsung diarahkan ke project yang benar.");
-    window.open(dest, "_blank", "noopener");
-  });
-
   document.getElementById("sbSaveBtn").addEventListener("click", async () => {
-    const statusEl = document.getElementById("sbStatus");
     sb.url = document.getElementById("sbUrl").value.trim();
     sb.anonKey = document.getElementById("sbKey").value.trim();
     sb.table = document.getElementById("sbTable").value.trim() || "kv_worldmd";
     await saveSettingsWithConfirmation("sbStatus");
-    if (sb.url && sb.anonKey) {
-      try {
-        const res = await fetch(`${sb.url}/rest/v1/${sb.table}?select=key&limit=1`, { headers: { apikey: sb.anonKey, Authorization: `Bearer ${sb.anonKey}` } });
-        if (res.status === 404) {
-          statusEl.textContent = "Tersimpan, tapi tabel belum ada di Supabase. Jalankan SQL setup di bawah dulu."; statusEl.className = "danger-text";
-          flashSqlPanel(true);
-          return;
-        }
-      } catch { /* biarkan pesan sukses save tetap tampil kalau tes gagal karena jaringan */ }
-    }
     render();
   });
   document.getElementById("sbTestBtn").addEventListener("click", async () => {
@@ -3035,18 +3748,13 @@ bindHandlers["settings-supabase"] = () => {
     try {
       const res = await fetch(`${url}/rest/v1/${table}?select=key&limit=1`, { headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` } });
       if (!res.ok) {
-        const map = { 401: "Anon key tidak valid.", 403: "Row Level Security menolak akses. Cek policy tabel.", 404: "Tabel tidak ditemukan. Jalankan SQL setup dulu (lihat panel di bawah — klik \"Salin SQL\", lalu \"Buka SQL Editor Supabase\")." };
-        const err = new Error(map[res.status] || `Gagal terhubung (HTTP ${res.status}).`);
-        err.httpStatus = res.status;
-        throw err;
+        const map = { 401: "Anon key tidak valid.", 403: "Row Level Security menolak akses. Cek policy tabel.", 404: "Tabel tidak ditemukan. Jalankan SQL setup dulu." };
+        throw new Error(map[res.status] || `Gagal terhubung (HTTP ${res.status}).`);
       }
       sb.url = url; sb.anonKey = anonKey; sb.table = table;
       await saveSettingsWithConfirmation("sbStatus");
       statusEl.textContent = "Berhasil terhubung & konfigurasi tersimpan."; statusEl.className = "ok-text";
-    } catch (e) {
-      statusEl.textContent = "Gagal terhubung: " + e.message; statusEl.className = "danger-text";
-      if (e.httpStatus === 404) flashSqlPanel(true);
-    }
+    } catch (e) { statusEl.textContent = "Gagal terhubung: " + e.message; statusEl.className = "danger-text"; }
   });
 };
 
